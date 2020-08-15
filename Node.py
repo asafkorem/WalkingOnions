@@ -4,15 +4,19 @@ from Channel import Channel
 
 class Node:
     def __init__(self):
-        self.channels = []
-        self.balance = LightningNetwork.NODE_DEFAULT_BALANCE
+        self.channels = dict()
+        self.balance = 0
 
-    def create_channel(self, node):
-        default_balance = LightningNetwork.CHANNEL_OWNERS_DEFAULT_BALANCE
-        new_channel = Channel(self, default_balance, node, default_balance)
-        self.channels.append(new_channel)
+    def create_channel(self, owner_balance, node, node_balance):
+        self.channels[node] = Channel(self, owner_balance, node, node_balance)
         self.balance -= LightningNetwork.CHANNEL_COST
 
+    def has_channel(self, node):
+        return node in self.channels.keys()
+
     def transact(self, target, value):
-        pass
+        channel = self.channels[target]
+        channel.transact(self, value)
+
+
 

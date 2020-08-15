@@ -1,16 +1,17 @@
 from Node import Node
+from Channel import Channel
 import LightningNetwork
 
 
 class Client(Node):
-    def __init__(self, relays):
-        self.channels = []
-        self.bootsrap_relays = set()
+    def __init__(self, bootstrap_relays):
+        super().__init__()
+        self.relays = bootstrap_relays
+        for relay in bootstrap_relays:
+            self.create_channel_with_relay(relay)
 
-    def transact_in_path(self, path):
-        path_started = False
-        for node in path:
-            if not path_started:
-                path_started = True
+    def create_channel_with_relay(self, relay):
+        self.channels[relay] = self.create_channel(LightningNetwork.DEFAULT_LIQUIDITY_CLIENT_RELAY_CHANNEL_OWNER,
+                                                   relay, LightningNetwork.DEFAULT_LIQUIDITY_CLIENT_RELAY_CHANNEL_RELAY)
 
 
