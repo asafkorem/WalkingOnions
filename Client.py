@@ -1,13 +1,12 @@
 from Node import Node
 from Relay import Relay
 from typing import List
-from LightningNetwork import LightningNetworkConfiguration
 
 
 class Client(Node):
-    def __init__(self, bootstrap_relays: List[Relay], network_configuration: LightningNetworkConfiguration):
+    def __init__(self, bootstrap_relays: List[Relay], network_configuration):
         super().__init__(network_configuration)
-        self.network_configuration: LightningNetworkConfiguration = network_configuration
+        self.network_configuration = network_configuration
         self.relays: List[Relay] = bootstrap_relays
         for relay in bootstrap_relays:
             self.create_channel_with_relay(relay)

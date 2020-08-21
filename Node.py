@@ -1,16 +1,15 @@
 from __future__ import annotations
-from LightningNetwork import LightningNetworkConfiguration
 from Channel import Channel
 from typing import Dict
 
 
 class Node:
-    def __init__(self, network_configuration: LightningNetworkConfiguration):
+    def __init__(self, network_configuration):
         """
 
         :param network_configuration:
         """
-        self.network_configuration: LightningNetworkConfiguration = network_configuration
+        self.network_configuration = network_configuration
         self.channels: Dict[Node, Channel] = dict()
         self.balance: float = 0
 
@@ -26,8 +25,6 @@ class Node:
             raise Exception("Channel with other owner already exists!")
 
         new_channel = Channel(self, owner_balance, other_owner, other_owner_balance, self.network_configuration)
-        self.balance -= (owner_balance + self.network_configuration.channel_cost)
-        other_owner.balance -= other_owner_balance
 
         # Update both nodes with the new channel:
         self.channels[other_owner] = new_channel
@@ -48,6 +45,8 @@ class Node:
         :param value:
         :return:
         """
+        if not self.has_channel(target):
+            raise Exception("You cannot transact to this target without a channel!")
         channel: Channel = self.channels[target]
         channel.transact(self, value)
 
