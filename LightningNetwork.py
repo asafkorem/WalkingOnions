@@ -92,13 +92,14 @@ class LightningNetwork:
         :return:
         """
         path: List[Node] = self.find_path(source_client, target_client)
-        if not self.verify_path(path):
+        if not self.verify_path(path, value):
             return False
 
         for i in range(1, len(path)):
-            net_value_for_step = value - i * self.configuration.relay_transaction_fee
+            # Deduct the fee from value on every hop
+            value -= self.configuration.relay_transaction_fee
             try:
-                path[i - 1].transact(path[i], net_value_for_step)
+                path[i - 1].transact(path[i], value)
             except Exception:
                 raise Exception("Failed to transact between node {0} and node {1} in the path".format(i - 1, i))
         return True
@@ -116,17 +117,28 @@ class LightningNetwork:
         middle_relays = random.sample(self.relays - set(first_hop) - set(target_relay), self.configuration.hops_number)
         return [source_client] + first_hop + middle_relays + target_relay + [target_client]
 
-    def verify_path(self, path: List[Node]) -> bool:
+    def verify_path(self, path: List[Node], value: float) -> bool:
         """
 
+        :param value:
         :param path:
         :return:
         """
         if self.configuration.is_liquidity_assumed:
             return True
-        # TODO: else verify whether the path is legal (liquid)
 
-        return False
+        first_relay_index = 1
+        last_relay_index = len(path) - 1
+        for i in range(first_relay_index, last_relay_index):
+            current_relay, next_relay = path[i], path[i + 1]
+            channel = current_relay.channels[next_relay]
+            current_relay_balance_in_channel = channel.balance1 if channel.node1 == current_relay else channel.balance2
+
+            # Deduct the fee from value on every hop
+            value -= self.configuration.relay_transaction_fee
+            if value > current_relay_balance_in_channel:
+                return False
+        return True
 
     def get_relays_balances(self) -> List[float]:
         """
