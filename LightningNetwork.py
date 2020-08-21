@@ -13,7 +13,6 @@ class LightningNetworkConfiguration:
                  default_balance_relay_relay_channel: float,
                  channel_cost: float,
                  relay_transaction_fee: float,
-                 path_find_max_retries: int,
                  hops_number: int,
                  is_liquidity_assumed: bool,
                  number_of_relays: int,
@@ -26,7 +25,6 @@ class LightningNetworkConfiguration:
         :param default_balance_relay_relay_channel:
         :param channel_cost:
         :param relay_transaction_fee:
-        :param path_find_max_retries:
         :param hops_number:
         :param is_liquidity_assumed:
         :param number_of_relays:
@@ -38,7 +36,6 @@ class LightningNetworkConfiguration:
         self.default_balance_relay_relay_channel = default_balance_relay_relay_channel
         self.channel_cost: float = channel_cost
         self.relay_transaction_fee: float = relay_transaction_fee
-        self.path_find_max_retries: int = path_find_max_retries
         self.hops_number: int = hops_number
         self.is_liquidity_assumed: bool = is_liquidity_assumed
         self.number_of_relays: int = number_of_relays
