@@ -22,11 +22,14 @@ class Node:
         :param other_owner_balance:
         :return:
         """
-        new_channel = Channel(self, owner_balance, other_owner, other_owner_balance)
+        if self.has_channel(other_owner):
+            raise Exception("Channel with other owner already exists!")
+
+        new_channel = Channel(self, owner_balance, other_owner, other_owner_balance, self.network_configuration)
         self.balance -= (owner_balance + self.network_configuration.channel_cost)
         other_owner.balance -= other_owner_balance
 
-        # Update both Nodes with the new channel:
+        # Update both nodes with the new channel:
         self.channels[other_owner] = new_channel
         other_owner.channels[self] = new_channel
 
