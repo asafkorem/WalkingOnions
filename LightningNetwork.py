@@ -124,7 +124,7 @@ class LightningNetwork:
             previous_relay = next_relay
 
         # If the last middle relay is target relay, shorten the path
-        if middle_relays[-1] == target_relay[0]:
+        while middle_relays[-1] == target_relay[0]:
             middle_relays.pop()
 
         return [source_client] + first_relay + middle_relays + target_relay + [target_client]
