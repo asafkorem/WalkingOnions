@@ -5,6 +5,8 @@ from Channel import Channel
 from Relay import Relay
 import random
 
+FAIL_INDEX_HISTOGRAM = [0, 0, 0, 0, 0, 0, 0]
+
 
 class LightningNetworkConfiguration:
     def __init__(self,
@@ -60,7 +62,7 @@ class LightningNetwork:
         :return: Full-graph of Relays.
         """
         relays: Set[Relay] = set()
-        for i in range(self.configuration.number_of_relays):
+        for _ in range(self.configuration.number_of_relays):
             new_relay = Relay(self.configuration)
             for other_relay in relays:
                 new_relay.create_channel(
@@ -77,7 +79,7 @@ class LightningNetwork:
         :return:
         """
         clients: Set[Client] = set()
-        for i in range(self.configuration.number_of_clients):
+        for _ in range(self.configuration.number_of_clients):
             bootstrap_relays = random.sample(self.relays, self.configuration.number_of_relays_per_client)
             new_client = Client(bootstrap_relays, self.configuration)
             clients.add(new_client)
@@ -96,12 +98,12 @@ class LightningNetwork:
             return False
 
         for i in range(1, len(path)):
-            # Deduct the fee from value on every hop
-            value -= self.configuration.relay_transaction_fee
             try:
                 path[i - 1].transact(path[i], value)
             except Exception:
                 raise Exception("Failed to transact between node {0} and node {1} in the path".format(i - 1, i))
+            # Deduct the fee from value on every hop
+            value -= self.configuration.relay_transaction_fee
         return True
 
     def find_path(self, source_client: Client, target_client: Client) -> List[Node]:
@@ -111,11 +113,11 @@ class LightningNetwork:
         :param target_client:
         :return:
         """
-        first_hop = random.sample(source_client.relays, 1)
+        first_relay = random.sample(source_client.relays, 1)
         target_relay = random.sample(target_client.relays, 1)
 
-        middle_relays = random.sample(self.relays - set(first_hop) - set(target_relay), self.configuration.hops_number)
-        return [source_client] + first_hop + middle_relays + target_relay + [target_client]
+        middle_relays = random.sample(self.relays - set(first_relay + target_relay), self.configuration.hops_number)
+        return [source_client] + first_relay + middle_relays + target_relay + [target_client]
 
     def verify_path(self, path: List[Node], value: float) -> bool:
         """
@@ -127,17 +129,15 @@ class LightningNetwork:
         if self.configuration.is_liquidity_assumed:
             return True
 
-        first_relay_index = 1
-        last_relay_index = len(path) - 1
-        for i in range(first_relay_index, last_relay_index):
-            current_relay, next_relay = path[i], path[i + 1]
+        for i in range(1, len(path)):
+            current_relay, next_relay = path[i - 1], path[i]
             channel = current_relay.channels[next_relay]
             current_relay_balance_in_channel = channel.balance1 if channel.node1 == current_relay else channel.balance2
-
+            if value > current_relay_balance_in_channel:
+                FAIL_INDEX_HISTOGRAM[i] += 1
+                return False
             # Deduct the fee from value on every hop
             value -= self.configuration.relay_transaction_fee
-            if value > current_relay_balance_in_channel:
-                return False
         return True
 
     def get_relays_balances(self) -> List[float]:
