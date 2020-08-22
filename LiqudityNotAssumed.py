@@ -19,19 +19,15 @@ def plot_relays_mean_balances():
         relay_transaction_fee=0.1,
         hops_number=3,
         is_liquidity_assumed=False,
-        number_of_relays=5,
+        number_of_relays=20,
         number_of_clients=10000,
         number_of_relays_per_client=10
     )
 
-    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**4, (1., 10.))
+    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**3, (2., 10.))
 
     plt.title("No Liquidity Assumption Relays Mean Balances")
     plt.plot(range(len(relays_mean_balances)), relays_mean_balances)
-    plt.show()
-
-    plt.title("No Liquidity Assumption Relays Mean Balances")
-    plt.plot(range(len(relays_mean_balances) * 5), relays_mean_balances)
     plt.show()
 
     plt.title("No Liquidity Assumption Failure Ratio")
@@ -70,5 +66,20 @@ def calculate_relays_mean_balances(network_configuration: LightningNetworkConfig
         if i % 100 == 0:
             print('iteration num: ' + str(i) + ' transaction succeeded: ' + str(transaction_succeeded) +
                   ', mean balance: ' + str(mean_balance) + ', fail ratio: ' + str(fail_ratio))
+
+    # channels = set()
+    # for relay in lightning_network.relays:
+    #     channels = channels.union(set(relay.channels.values()))
+    #
+    # l = [(c.balance1, c.balance2) for c in channels]
+    #
+    # for z in l:
+    #     if z[0] == float('inf') or z[1] == float('inf'):
+    #         continue
+    #
+    #     print("values")
+    #     print(z[0])
+    #     print(z[1])
+    #     print()
 
     return relays_mean_balances, num_fails_ratio_array

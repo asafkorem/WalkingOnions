@@ -37,12 +37,12 @@ class Channel:
         is_liquidity_assumed: bool = self.network_configuration.is_liquidity_assumed
 
         if sender_node == self.node1:
-            if is_liquidity_assumed and self.balance1 - value < 0:
+            if not is_liquidity_assumed and self.balance1 - value < 0:
                 raise Exception("Transfer failed: insufficient funds")
             self.balance1 -= value
             self.balance2 += value
 
-        if is_liquidity_assumed and self.balance2 - value < 0:
+        if not is_liquidity_assumed and self.balance2 - value < 0:
             raise Exception("Transfer failed: insufficient funds")
         self.balance2 -= value
         self.balance1 += value
