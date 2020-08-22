@@ -2,6 +2,7 @@ from typing import List, Set, Dict
 from Node import Node
 from Client import Client
 from Relay import Relay
+from Channel import Channel, DemoChannel
 import random
 
 
@@ -111,10 +112,21 @@ class LightningNetwork:
         :param target_client:
         :return:
         """
-        first_relay = random.sample(source_client.relays, 1)
-        target_relay = random.sample(target_client.relays, 1)
+        first_relay: List[Relay] = random.sample(source_client.relays, 1)
+        target_relay: List[Relay] = random.sample(target_client.relays, 1)
 
-        middle_relays = random.sample(self.relays - set(first_relay + target_relay), self.configuration.hops_number)
+        middle_relays: List[Relay] = []
+        previous_relay: List[Relay] = first_relay
+        for _ in range(self.configuration.hops_number):
+            next_relay_options: Set[Relay] = self.relays - set(previous_relay)
+            next_relay: List[Relay] = random.sample(next_relay_options, 1)
+            middle_relays += next_relay
+            previous_relay = next_relay
+
+        # If the last middle relay is target relay, shorten the path
+        if middle_relays[-1] == target_relay:
+            middle_relays.pop()
+
         return [source_client] + first_relay + middle_relays + target_relay + [target_client]
 
     def verify_path(self, path: List[Node], value: float) -> bool:
@@ -127,17 +139,27 @@ class LightningNetwork:
         if self.configuration.is_liquidity_assumed:
             return True
 
+        channels_in_path: List[DemoChannel] = []
+        senders: List[Node] = []
         for i in range(0, len(path) - 1):
             current_node, next_node = path[i], path[i + 1]
-            channel = current_node.channels[next_node]
+            current_channel: Channel = current_node.channels[next_node]
+            current_channel_copy: DemoChannel = DemoChannel(current_channel)
+            channels_in_path.append(current_channel_copy)
+            senders.append(current_node)
 
-            current_node_balance_in_channel = channel.balance1 if channel.node1 == current_node else channel.balance2
-            if value > current_node_balance_in_channel:
-                return False
-
-            # Deduct the fee from value for the next hop transaction
+        for channel, sender in zip(channels_in_path, senders):
+            if sender == channel.node1:
+                if channel.balance1 < value:
+                    return False
+                channel.balance1 -= value
+                channel.balance2 += value
+            else:
+                if channel.balance2 < value:
+                    return False
+                channel.balance2 -= value
+                channel.balance1 += value
             value -= self.configuration.relay_transaction_fee
-
         return True
 
     def get_relays_balances(self) -> List[float]:

@@ -16,7 +16,7 @@ def plot_relays_mean_balances():
         default_balance_client_relay_channel_relay=20,
         default_balance_relay_relay_channel=20,
         channel_cost=1,
-        relay_transaction_fee=0.1,
+        relay_transaction_fee=0.3,
         hops_number=3,
         is_liquidity_assumed=False,
         number_of_relays=20,
@@ -24,7 +24,7 @@ def plot_relays_mean_balances():
         number_of_relays_per_client=10
     )
 
-    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**3, (1, 10))
+    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**3, (2, 10))
 
     plt.title("No Liquidity Assumption Relays Mean Balances")
     plt.plot(range(len(relays_mean_balances)), relays_mean_balances)

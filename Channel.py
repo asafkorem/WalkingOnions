@@ -47,3 +47,15 @@ class Channel:
             raise Exception("Transfer failed: insufficient funds")
         self.balance2 -= value
         self.balance1 += value
+
+
+class DemoChannel:
+    def __init__(
+            self,
+            channel: Channel
+    ):
+        self.node1 = channel.node1
+        self.balance1: float = channel.balance1
+
+        self.node2 = channel.node2
+        self.balance2: float = channel.balance2
