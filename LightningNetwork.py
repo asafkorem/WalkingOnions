@@ -1,11 +1,8 @@
 from typing import List, Set, Dict
 from Node import Node
 from Client import Client
-from Channel import Channel
 from Relay import Relay
 import random
-
-FAIL_INDEX_HISTOGRAM = [0, 0, 0, 0, 0, 0, 0]
 
 
 class LightningNetworkConfiguration:
@@ -52,8 +49,6 @@ class LightningNetwork:
         :param configuration:
         """
         self.configuration: LightningNetworkConfiguration = configuration
-        self.cancelled_transactions_count: int = 0
-        self.total_transactions: int = 0
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
 
@@ -75,8 +70,8 @@ class LightningNetwork:
 
     def create_clients(self) -> Set[Client]:
         """
-
-        :return:
+        :return: Set of network clients, based on the network configuration, connected to bootstrap relays with
+         channels.
         """
         clients: Set[Client] = set()
         for _ in range(self.configuration.number_of_clients):
@@ -97,13 +92,16 @@ class LightningNetwork:
         if not self.verify_path(path, value):
             return False
 
-        for i in range(1, len(path)):
+        for i in range(0, len(path) - 1):
+            current_node, next_node = path[i], path[i + 1]
             try:
-                path[i - 1].transact(path[i], value)
+                current_node.transact(next_node, value)
             except Exception:
-                raise Exception("Failed to transact between node {0} and node {1} in the path".format(i - 1, i))
-            # Deduct the fee from value on every hop
+                raise Exception("Failed to transact between node {0} and node {1} in the path".format(i, i + 1))
+
+            # Deduct the fee from value for the next hop transaction
             value -= self.configuration.relay_transaction_fee
+
         return True
 
     def find_path(self, source_client: Client, target_client: Client) -> List[Node]:
@@ -129,15 +127,17 @@ class LightningNetwork:
         if self.configuration.is_liquidity_assumed:
             return True
 
-        for i in range(1, len(path)):
-            current_relay, next_relay = path[i - 1], path[i]
-            channel = current_relay.channels[next_relay]
-            current_relay_balance_in_channel = channel.balance1 if channel.node1 == current_relay else channel.balance2
-            if value > current_relay_balance_in_channel:
-                FAIL_INDEX_HISTOGRAM[i] += 1
+        for i in range(0, len(path) - 1):
+            current_node, next_node = path[i], path[i + 1]
+            channel = current_node.channels[next_node]
+
+            current_node_balance_in_channel = channel.balance1 if channel.node1 == current_node else channel.balance2
+            if value > current_node_balance_in_channel:
                 return False
-            # Deduct the fee from value on every hop
+
+            # Deduct the fee from value for the next hop transaction
             value -= self.configuration.relay_transaction_fee
+
         return True
 
     def get_relays_balances(self) -> List[float]:

@@ -15,11 +15,15 @@ class Channel:
         :param balance2:
         :param network_configuration:
         """
+        self.network_configuration = network_configuration
+
+        # The channel creator pays for the channel creation cost (miners fee)
         node1.balance -= (balance1 + network_configuration.channel_cost)
         node2.balance -= balance2
 
         self.node1 = node1
         self.balance1: float = balance1
+
         self.node2 = node2
         self.balance2: float = balance2
 
@@ -30,10 +34,15 @@ class Channel:
         :param value:
         :return:
         """
+        is_liquidity_assumed: bool = self.network_configuration.is_liquidity_assumed
+
         if sender_node == self.node1:
+            if is_liquidity_assumed and self.balance1 - value < 0:
+                raise Exception("Transfer failed: insufficient funds")
             self.balance1 -= value
             self.balance2 += value
-            return
 
+        if is_liquidity_assumed and self.balance2 - value < 0:
+            raise Exception("Transfer failed: insufficient funds")
         self.balance2 -= value
         self.balance1 += value

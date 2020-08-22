@@ -47,18 +47,19 @@ def calculate_error(network_configuration: LightningNetworkConfiguration, transa
 
     initial_balances = lightning_network.get_relays_balances()
     initial_mean_balance = float(np.mean(initial_balances, dtype=np.float64))
-    mean_relay_balances: List[float] = [initial_mean_balance]
+    mean_relay_balances: List[float] = [0] * (transactions_count + 1)
+    mean_relay_balances[0] = initial_mean_balance
 
-    for i in range(transactions_count):
+    for i in range(1, transactions_count + 1):
         c1, c2 = random.sample(lightning_network.clients, 2)
         value = random.uniform(transaction_value_range[0], transaction_value_range[1])
         lightning_network.transact(c1, c2, value)
 
         balances = lightning_network.get_relays_balances()
         mean_balance = np.mean(balances, dtype=np.float64)
-        mean_relay_balances.append(float(mean_balance))
+        mean_relay_balances[i] = float(mean_balance)
 
-    errors = [abs(expected_relay_balances[i] - mean_relay_balances[i]) for i in range(len(expected_relay_balances))]
+    errors = [abs(expected_relay_balances[j] - mean_relay_balances[j]) for j in range(len(expected_relay_balances))]
     return float(np.mean(errors))
 
 

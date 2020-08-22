@@ -22,7 +22,7 @@ class Node:
         :return:
         """
         if self.has_channel(other_owner):
-            raise Exception("Channel with other owner already exists!")
+            raise Exception("A channel with this other owner already exists")
 
         new_channel = Channel(self, owner_balance, other_owner, other_owner_balance, self.network_configuration)
 
