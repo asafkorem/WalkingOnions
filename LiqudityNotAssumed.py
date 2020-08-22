@@ -24,7 +24,7 @@ def plot_relays_mean_balances():
         number_of_relays_per_client=10
     )
 
-    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**3, (2., 10.))
+    relays_mean_balances, num_failed_ratio_array = calculate_relays_mean_balances(configuration, 10**3, (1, 10))
 
     plt.title("No Liquidity Assumption Relays Mean Balances")
     plt.plot(range(len(relays_mean_balances)), relays_mean_balances)

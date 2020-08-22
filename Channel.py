@@ -41,6 +41,7 @@ class Channel:
                 raise Exception("Transfer failed: insufficient funds")
             self.balance1 -= value
             self.balance2 += value
+            return
 
         if not is_liquidity_assumed and self.balance2 - value < 0:
             raise Exception("Transfer failed: insufficient funds")
