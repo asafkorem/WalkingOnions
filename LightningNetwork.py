@@ -12,6 +12,7 @@ class LightningNetworkConfiguration:
                  default_balance_relay_relay_channel: float,
                  channel_cost: float,
                  relay_transaction_fee: float,
+                 transaction_proportional_fee: float,
                  hops_number: int,
                  is_liquidity_assumed: bool,
                  number_of_relays: int,
@@ -35,6 +36,7 @@ class LightningNetworkConfiguration:
         self.default_balance_relay_relay_channel = default_balance_relay_relay_channel
         self.channel_cost: float = channel_cost
         self.relay_transaction_fee: float = relay_transaction_fee
+        self.transaction_proportional_fee: float = transaction_proportional_fee
         self.hops_number: int = hops_number
         self.is_liquidity_assumed: bool = is_liquidity_assumed
         self.number_of_relays: int = number_of_relays
@@ -156,5 +158,30 @@ class LightningNetwork:
                 relay_to_funds[relay] += balance_in_channel
 
         return list(relay_to_funds.values())
+
+    def calculate_cumulative_base_fee(self) -> float:
+        """
+
+        :return:
+        """
+        return self.configuration.relay_transaction_fee * (self.configuration.hops_number + 2)
+
+    def calculate_cumulative_proportional_fee(self, value: float) -> float:
+        """
+
+        :param value:
+        :return:
+        """
+        brut_value: float = value + self.calculate_cumulative_base_fee()
+        cumulative_ratio_fee: float = 0
+
+        # Number of hops +2 for first relay and target relay
+        num_relays: int = self.configuration.hops_number + 2
+
+        for _ in range(num_relays):
+            ratio_fee = brut_value * self.configuration.transaction_proportional_fee
+            cumulative_ratio_fee += brut_value * self.configuration.transaction_proportional_fee
+            brut_value -= (ratio_fee + self.configuration.relay_transaction_fee)
+        return cumulative_ratio_fee
 
 

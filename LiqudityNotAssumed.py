@@ -18,6 +18,7 @@ def plot_relays_mean_balances():
         default_balance_relay_relay_channel=20,
         channel_cost=1,
         relay_transaction_fee=0.1,
+        transaction_proportional_fee=0.001,
         hops_number=3,
         is_liquidity_assumed=False,
         number_of_relays=20,
