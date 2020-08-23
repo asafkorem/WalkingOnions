@@ -1,6 +1,7 @@
 from LightningNetwork import LightningNetworkConfiguration
 from LightningNetwork import LightningNetwork
 from typing import Tuple, List
+from LogNormal import LogNormal
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,10 +52,9 @@ def calculate_relays_mean_balances(network_configuration: LightningNetworkConfig
     relays_mean_balances[0] = initial_mean_balance
     num_fails = 0
     num_fails_ratio_array: List[float] = [0] * (transactions_count + 1)
-
-    for i in range(1, transactions_count + 1):
+    distribution = LogNormal(size=transactions_count)
+    for i, value in zip(range(1, transactions_count + 1), distribution.get_samples()):
         c1, c2 = random.sample(lightning_network.clients, 2)
-        value = random.uniform(transaction_value_range[0], transaction_value_range[1])
         transaction_succeeded = lightning_network.transact(c1, c2, value)
         if not transaction_succeeded:
             num_fails += 1

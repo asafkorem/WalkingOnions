@@ -125,7 +125,7 @@ class LightningNetwork:
         :return:
         """
         if value < 0:
-            return False
+            raise ValueError("Tried to send negative value: ", value)
 
         if self.configuration.is_liquidity_assumed:
             return True
