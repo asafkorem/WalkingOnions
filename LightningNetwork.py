@@ -124,6 +124,9 @@ class LightningNetwork:
         :param path:
         :return:
         """
+        if value < 0:
+            return False
+
         if self.configuration.is_liquidity_assumed:
             return True
 
