@@ -12,7 +12,7 @@ SIGMA: float = 0.4
 def test_plot(sample_size: int):
     """
 
-    :param size:
+    :param sample_size:
     :return:
     """
     sample = np.random.lognormal(mean=MEAN, sigma=SIGMA, size=sample_size)

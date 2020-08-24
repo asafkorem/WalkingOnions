@@ -15,12 +15,13 @@ def is_error_smaller_than_epsilon(epsilon: float = 0.0001):
         default_balance_client_relay_channel_relay=0,
         default_balance_relay_relay_channel=0,
         channel_cost=1,
-        relay_transaction_fee=0.1,
+        relay_transaction_fee=100,
+        transaction_proportional_fee=0,
         hops_number=3,
         is_liquidity_assumed=True,
         number_of_relays=100,
         number_of_clients=10000,
-        number_of_relays_per_client=5
+        number_of_relays_per_client=1
     )
 
     error: float = calculate_error(

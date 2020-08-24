@@ -25,6 +25,7 @@ class LightningNetworkConfiguration:
         :param default_balance_relay_relay_channel:
         :param channel_cost:
         :param relay_transaction_fee:
+        :param transaction_proportional_fee:
         :param hops_number:
         :param is_liquidity_assumed:
         :param number_of_relays:
@@ -90,6 +91,7 @@ class LightningNetwork:
         :param value:
         :return:
         """
+        value = self.calculate_value_with_cumulative_fees(value)
         path: List[Node] = self.find_path(source_client, target_client)
         if not self.verify_path(path, value):
             return False
@@ -101,10 +103,45 @@ class LightningNetwork:
             except Exception:
                 raise Exception("Failed to transact between node {0} and node {1} in the path".format(i, i + 1))
 
-            # Deduct the fee from value for the next hop transaction
-            value -= self.configuration.relay_transaction_fee
+            # Deduct the fees from value for the next hop transaction
+            value = self.deduct_fees_from_value(value)
 
         return True
+
+    def calculate_value_with_cumulative_fees(self, value: float) -> float:
+        """
+
+        :param value:
+        :return:
+        """
+        return value + self.calculate_cumulative_base_fee() + self.calculate_cumulative_proportional_fee(value)
+
+    def calculate_cumulative_base_fee(self) -> float:
+        """
+
+        :return:
+        """
+        return self.configuration.relay_transaction_fee * (self.configuration.hops_number + 2)
+
+    def calculate_cumulative_proportional_fee(self, value: float) -> float:
+        """
+
+        :param value:
+        :return:
+        """
+        num_relays_in_path: int = self.configuration.hops_number + 2
+        new_value: float = value / ((1 - self.configuration.transaction_proportional_fee) ** num_relays_in_path)
+        return new_value - value
+
+    def deduct_fees_from_value(self, value) -> float:
+        """
+
+        :param value:
+        :return:
+        """
+        proportional_fee = self.configuration.transaction_proportional_fee * value
+        fees = self.configuration.relay_transaction_fee + proportional_fee
+        return value - fees
 
     def find_path(self, source_client: Client, target_client: Client) -> List[Node]:
         """
@@ -140,8 +177,8 @@ class LightningNetwork:
             if value > current_node_balance_in_channel:
                 return False
 
-            # Deduct the fee from value for the next hop transaction
-            value -= self.configuration.relay_transaction_fee
+            # Deduct the fees from value for the next hop transaction
+            value = self.deduct_fees_from_value(value)
 
         return True
 
@@ -158,30 +195,3 @@ class LightningNetwork:
                 relay_to_funds[relay] += balance_in_channel
 
         return list(relay_to_funds.values())
-
-    def calculate_cumulative_base_fee(self) -> float:
-        """
-
-        :return:
-        """
-        return self.configuration.relay_transaction_fee * (self.configuration.hops_number + 2)
-
-    def calculate_cumulative_proportional_fee(self, value: float) -> float:
-        """
-
-        :param value:
-        :return:
-        """
-        brut_value: float = value + self.calculate_cumulative_base_fee()
-        cumulative_ratio_fee: float = 0
-
-        # Number of hops +2 for first relay and target relay
-        num_relays: int = self.configuration.hops_number + 2
-
-        for _ in range(num_relays):
-            ratio_fee = brut_value * self.configuration.transaction_proportional_fee
-            cumulative_ratio_fee += brut_value * self.configuration.transaction_proportional_fee
-            brut_value -= (ratio_fee + self.configuration.relay_transaction_fee)
-        return cumulative_ratio_fee
-
-
