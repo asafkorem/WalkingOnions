@@ -133,7 +133,7 @@ class LightningNetwork:
         new_value: float = value / ((1 - self.configuration.transaction_proportional_fee) ** num_relays_in_path)
         return new_value - value
 
-    def deduct_fees_from_value(self, value):
+    def deduct_fees_from_value(self, value) -> float:
         """
 
         :param value:
@@ -195,4 +195,3 @@ class LightningNetwork:
                 relay_to_funds[relay] += balance_in_channel
 
         return list(relay_to_funds.values())
-
