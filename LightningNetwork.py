@@ -108,7 +108,7 @@ class LightningNetwork:
 
         return True
 
-    def calculate_value_with_cumulative_fees(self, value: float):
+    def calculate_value_with_cumulative_fees(self, value: float) -> float:
         """
 
         :param value:
@@ -195,5 +195,4 @@ class LightningNetwork:
                 relay_to_funds[relay] += balance_in_channel
 
         return list(relay_to_funds.values())
-
 
