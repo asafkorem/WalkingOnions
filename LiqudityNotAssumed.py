@@ -27,8 +27,8 @@ class SimulationConfiguration:
         return hash((self.r2c_balance, self.r2c_balance, self.fee_type))
 
     def __eq__(self, other):
-        return (self.r2c_balance, self.r2c_balance, self.fee_type)\
-               == (other.r2c_balance, other.r2c_balance, other.fee_type)
+        return (self.r2r_balance, self.r2c_balance, self.fee_type)\
+               == (other.r2r_balance, other.r2c_balance, other.fee_type)
 
     def __ne__(self, other):
         # Not strictly necessary, but to avoid having both x==y and x!=y
