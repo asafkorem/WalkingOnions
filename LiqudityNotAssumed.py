@@ -1,15 +1,46 @@
 from LightningNetwork import LightningNetworkConfiguration
 from LightningNetwork import LightningNetwork
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 from LogNormal import LogNormal
 import random
 import numpy as np
 from itertools import product
 from enum import Enum
+import os
+import pandas as pd
+from datetime import datetime
 import matplotlib.pyplot as plt
 
 
-def plot_graphs(transactions_num=10**4, avg_across_count=5):
+class FeeType(Enum):
+    BASE = 0
+    PROPORTIONAL = 1
+
+
+class SimulationConfiguration:
+    def __init__(self, r2r_balance, r2c_balance, fee_type):
+        self.r2r_balance = r2c_balance
+        self.r2c_balance = r2c_balance
+        self.fee_type = fee_type
+
+    def __hash__(self):
+        return hash((self.r2c_balance, self.r2c_balance, self.fee_type))
+
+    def __eq__(self, other):
+        return (self.r2c_balance, self.r2c_balance, self.fee_type)\
+               == (other.r2c_balance, other.r2c_balance, other.fee_type)
+
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not (self == other)
+
+    def __str__(self):
+        return "r2r {} r2c {} fee_type {}".format(self.r2r_balance, self.r2c_balance,
+                                                  "base_fee" if self.fee_type == FeeType.BASE else "proportional_fee")
+
+
+def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
@@ -27,15 +58,11 @@ def plot_graphs(transactions_num=10**4, avg_across_count=5):
     transaction_base_fee = 100
     transaction_proportional_fee = 0.01
 
-    class FeeType(Enum):
-        BASE = 0
-        PROPORTIONAL = 1
-
     transaction_fee_types = [FeeType.BASE, FeeType.PROPORTIONAL]
 
     # Dictionary keys order: r2r_balance, r2c_balance, fee_type.
-    configuration_to_avg_mean_balances: Dict[Tuple[float, float, FeeType], List[float]] = dict()
-    configuration_to_avg_fail_rates: Dict[Tuple[float, float, FeeType], List[float]] = dict()
+    configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]] = dict()
+    configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]] = dict()
 
     for r2r_balance, r2c_balance, fee_type \
             in product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types):
@@ -74,15 +101,13 @@ def plot_graphs(transactions_num=10**4, avg_across_count=5):
         avg_mean_balances: List[float] = [sum(elements) / avg_across_count for elements in zip(*mean_balances_results)]
         avg_fail_rates: List[float] = [sum(elements) / avg_across_count for elements in zip(*fail_rates_results)]
 
-        configuration: Tuple[float, float, FeeType] = (r2r_balance, r2c_balance, fee_type)
+        configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, fee_type)
         configuration_to_avg_mean_balances[configuration] = avg_mean_balances
         configuration_to_avg_fail_rates[configuration] = avg_fail_rates
 
-    # TODO: Plot graphs by fee type:
-    for r2r_balance, r2c_balance in product(r2r_channel_balances, r2c_channel_balances):
-        configuration_name: str = \
-            "R2R initial balance: {}, R2C initial balance (relay): {}".format(r2r_balance, r2c_balance)
-        print()
+    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, "Avg Mean Balances")
+    fail_ratio_df = store_results(configuration_to_avg_fail_rates, "Fail Ratio")
+    plot_graphs([avg_mean_balances_df, fail_ratio_df], ["Avg Mean Balances", "Fail Ratio"])
 
 
 def calculate_mean_balances_and_fail_rates(
@@ -96,9 +121,7 @@ def calculate_mean_balances_and_fail_rates(
     :return:
     """
     lightning_network: LightningNetwork = LightningNetwork(network_configuration)
-
-    initial_balances = lightning_network.get_relays_balances()
-    initial_mean_balance = float(np.mean(initial_balances, dtype=np.float64))
+    initial_mean_balance = lightning_network.get_relays_mean_balance()
 
     mean_balances: List[float] = [0] * (len(transaction_values) + 1)
     mean_balances[0] = initial_mean_balance
@@ -114,6 +137,39 @@ def calculate_mean_balances_and_fail_rates(
         if not lightning_network.transact(c1, c2, value):
             num_fails += 1
         fail_rates[i] = num_fails / i
-        mean_balances[i] = lightning_network.get_relay_mean_profit()
+        mean_balances[i] = lightning_network.get_relays_mean_balance()
 
     return mean_balances, fail_rates
+
+
+def store_results(results: Dict[SimulationConfiguration, List[float]], plot_name) -> pd.DataFrame:
+    """
+
+    :param results:
+    :param plot_name:
+    :return:
+    """
+    now = datetime.now()
+    current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
+    df = pd.DataFrame.from_dict(results)
+    directory = os.path.join("results", current_date_time)
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    df.to_csv(os.path.join("results", current_date_time, plot_name + '.csv'), index=False)
+    return df
+
+
+def plot_graphs(dfs, titles: Optional[List[str]] = None):
+    """
+
+    :param dfs:
+    :param titles:
+    :return:
+    """
+    if type(dfs) is not list:
+        dfs = [dfs]
+    if titles is None:
+        titles = [str(i) for i in range(len(dfs))]
+    for df, title in zip(dfs, titles):
+        df.plot(title=title)
+        plt.show()

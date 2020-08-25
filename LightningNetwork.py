@@ -54,7 +54,7 @@ class LightningNetwork:
         self.configuration: LightningNetworkConfiguration = configuration
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
-        self.fees_collected: float = 0
+        self.total_balances: float = sum(self.get_relays_balances())
 
     def create_relays(self) -> Set[Relay]:
         """
@@ -107,10 +107,10 @@ class LightningNetwork:
 
             # Deduct the fees from value for the next hop transaction
             value, fees = self.deduct_fees_from_value(value)
-            self.fees_collected += fees
+            self.total_balances += fees
 
         # The fees added to self.fees_collected in the last iteration of the loop above shouldn't be collected.
-        self.fees_collected -= fees
+        self.total_balances -= fees
 
         return True
 
@@ -202,8 +202,8 @@ class LightningNetwork:
 
         return list(relay_to_funds.values())
 
-    def get_relay_mean_profit(self) -> float:
+    def get_relays_mean_balance(self) -> float:
         """
         :return: Returns the mean profit of the relays from transaction fees.
         """
-        return self.fees_collected / len(self.relays)
+        return self.total_balances / len(self.relays)
