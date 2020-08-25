@@ -10,6 +10,9 @@ import os
 import pandas as pd
 from datetime import datetime
 import matplotlib.pyplot as plt
+from multiprocessing import Pool, cpu_count
+import tqdm
+import istarmap
 
 
 class FeeType(Enum):
@@ -27,7 +30,7 @@ class SimulationConfiguration:
         return hash((self.r2c_balance, self.r2c_balance, self.fee_type))
 
     def __eq__(self, other):
-        return (self.r2r_balance, self.r2c_balance, self.fee_type)\
+        return (self.r2r_balance, self.r2c_balance, self.fee_type) \
                == (other.r2r_balance, other.r2c_balance, other.fee_type)
 
     def __ne__(self, other):
@@ -40,12 +43,12 @@ class SimulationConfiguration:
                                                   "base_fee" if self.fee_type == FeeType.BASE else "proportional_fee")
 
 
-def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
+def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
     """
-    channel_cost = 44 * (10 ** 3)   # Based on avg. miners fee
+    channel_cost = 44 * (10 ** 3)  # Based on avg. miners fee
     hops_number = 3
     number_of_relays = 10 ** 3
     number_of_clients = 10 ** 5
@@ -68,43 +71,25 @@ def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
     transaction_samples: List[List[float]] = [LogNormal(size=transactions_num).get_samples()
                                               for _ in range(avg_across_count)]
 
-    for r2r_balance, r2c_balance, fee_type \
-            in product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types):
-        print("Running simulation for the following configuration:\nr2r_balance=%s, r2c_balance=%s, fee_type=%s" %
-              (str(r2r_balance), str(r2c_balance), "base_fee" if fee_type == FeeType.BASE else "proportional_fee"))
-        network_configuration = LightningNetworkConfiguration(
-            default_balance_client_relay_channel_client=float('inf'),
-            default_balance_client_relay_channel_relay=r2c_balance,
-            default_balance_relay_relay_channel=r2r_balance,
-            channel_cost=channel_cost,
-            relay_transaction_fee=transaction_base_fee if fee_type == FeeType.BASE else 0,
-            transaction_proportional_fee=transaction_proportional_fee if fee_type == FeeType.PROPORTIONAL else 0,
-            hops_number=hops_number,
-            is_liquidity_assumed=True,
-            number_of_relays=number_of_relays,
-            number_of_clients=number_of_clients,
-            number_of_relays_per_client=number_of_relays_per_client
-        )
+    configurations = product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types)
+    groups = [(r2c_balance,
+               r2r_balance,
+               fee_type,
+               transaction_base_fee,
+               transaction_proportional_fee,
+               channel_cost,
+               hops_number,
+               number_of_relays,
+               number_of_clients,
+               number_of_relays_per_client,
+               transaction_samples) for r2r_balance, r2c_balance, fee_type in configurations]
+    with Pool(cpu_count()) as pool:
+        results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
-        mean_balances_results: List[List[float]] = list()
-        fail_rates_results: List[List[float]] = list()
-        for i, transactions_values in enumerate(transaction_samples, 1):
-            print("iter {} out of {}".format(i, len(transaction_samples)))
-
-            mean_balances, fail_rates = calculate_mean_balances_and_fail_rates(
-                network_configuration=network_configuration,
-                transaction_values=transactions_values
-            )
-
-            mean_balances_results.append(mean_balances)
-            fail_rates_results.append(fail_rates)
-
-        avg_mean_balances: List[float] = [sum(elements) / avg_across_count for elements in zip(*mean_balances_results)]
-        avg_fail_rates: List[float] = [sum(elements) / avg_across_count for elements in zip(*fail_rates_results)]
-
-        configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, fee_type)
-        configuration_to_avg_mean_balances[configuration] = avg_mean_balances
-        configuration_to_avg_fail_rates[configuration] = avg_fail_rates
+    configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
+        = {configuration: avg_mean_balances for configuration, avg_mean_balances, avg_fail_rates in results}
+    configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]]\
+        = {configuration: avg_fail_rates for configuration, avg_mean_balances, avg_fail_rates in results}
 
     avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, "Avg Relay Mean Balances in Satoshi")
     fail_ratio_df = store_results(configuration_to_avg_fail_rates, "Fail Ratio")
@@ -172,5 +157,65 @@ def plot_graphs(dfs, titles: Optional[List[str]] = None):
     if titles is None:
         titles = [str(i) for i in range(len(dfs))]
     for df, title in zip(dfs, titles):
-        df.plot(title=title)
+        df.plot(title=title, figsize=(20, 10)).legend(loc='center left',bbox_to_anchor=(1.0, 0.5))
         plt.show()
+
+
+def run_simulation(r2c_balance,
+                   r2r_balance,
+                   fee_type,
+                   transaction_base_fee,
+                   transaction_proportional_fee,
+                   channel_cost,
+                   hops_number,
+                   number_of_relays,
+                   number_of_clients,
+                   number_of_relays_per_client,
+                   transaction_samples) -> Tuple[SimulationConfiguration, List[float], List[float]]:
+    """
+
+    :param r2c_balance:
+    :param r2r_balance:
+    :param fee_type:
+    :param transaction_base_fee:
+    :param transaction_proportional_fee:
+    :param channel_cost:
+    :param hops_number:
+    :param number_of_relays:
+    :param number_of_clients:
+    :param number_of_relays_per_client:
+    :param transaction_samples:
+    :return:
+    """
+    network_configuration = LightningNetworkConfiguration(
+        default_balance_client_relay_channel_client=float('inf'),
+        default_balance_client_relay_channel_relay=r2c_balance,
+        default_balance_relay_relay_channel=r2r_balance,
+        channel_cost=channel_cost,
+        relay_transaction_fee=transaction_base_fee if fee_type == FeeType.BASE else 0,
+        transaction_proportional_fee=transaction_proportional_fee if fee_type == FeeType.PROPORTIONAL else 0,
+        hops_number=hops_number,
+        is_liquidity_assumed=True,
+        number_of_relays=number_of_relays,
+        number_of_clients=number_of_clients,
+        number_of_relays_per_client=number_of_relays_per_client
+    )
+
+    mean_balances_results: List[List[float]] = list()
+    fail_rates_results: List[List[float]] = list()
+    for i, transactions_values in enumerate(transaction_samples, 1):
+        mean_balances, fail_rates = calculate_mean_balances_and_fail_rates(
+            network_configuration=network_configuration,
+            transaction_values=transactions_values
+        )
+
+        mean_balances_results.append(mean_balances)
+        fail_rates_results.append(fail_rates)
+
+    avg_mean_balances: List[float] = [sum(elements) / len(transaction_samples) for elements in
+                                      zip(*mean_balances_results)]
+    avg_fail_rates: List[float] = [sum(elements) / len(transaction_samples) for elements in zip(*fail_rates_results)]
+
+    configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, fee_type)
+
+    return configuration, avg_mean_balances, avg_fail_rates
