@@ -19,7 +19,7 @@ class FeeType(Enum):
 
 class SimulationConfiguration:
     def __init__(self, r2r_balance, r2c_balance, fee_type):
-        self.r2r_balance = r2c_balance
+        self.r2r_balance = r2r_balance
         self.r2c_balance = r2c_balance
         self.fee_type = fee_type
 
@@ -60,7 +60,6 @@ def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
 
     transaction_fee_types = [FeeType.BASE, FeeType.PROPORTIONAL]
 
-    # Dictionary keys order: r2r_balance, r2c_balance, fee_type.
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]] = dict()
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]] = dict()
 
@@ -105,9 +104,9 @@ def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
         configuration_to_avg_mean_balances[configuration] = avg_mean_balances
         configuration_to_avg_fail_rates[configuration] = avg_fail_rates
 
-    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, "Avg Mean Balances")
+    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, "Avg Relay Mean Balances in Satoshi")
     fail_ratio_df = store_results(configuration_to_avg_fail_rates, "Fail Ratio")
-    plot_graphs([avg_mean_balances_df, fail_ratio_df], ["Avg Mean Balances", "Fail Ratio"])
+    plot_graphs([avg_mean_balances_df, fail_ratio_df], ["Avg Relay Mean Balances in Satoshi", "Fail Ratio"])
 
 
 def calculate_mean_balances_and_fail_rates(
