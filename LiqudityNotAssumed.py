@@ -63,6 +63,11 @@ def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]] = dict()
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]] = dict()
 
+    # We need to make sure that every configuration is simulated on the same list of transaction values in order to
+    # compare between them correctly.
+    transaction_samples: List[List[float]] = [LogNormal(size=transactions_num).get_samples()
+                                              for _ in range(avg_across_count)]
+
     for r2r_balance, r2c_balance, fee_type \
             in product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types):
         print("Running simulation for the following configuration:\nr2r_balance=%s, r2c_balance=%s, fee_type=%s" %
@@ -81,13 +86,10 @@ def run_simulations_and_plot_graphs(transactions_num=10**4, avg_across_count=5):
             number_of_relays_per_client=number_of_relays_per_client
         )
 
-        # Change this value to avg across more values:
-
         mean_balances_results: List[List[float]] = list()
         fail_rates_results: List[List[float]] = list()
-        for i in range(avg_across_count):
-            print("iter %s out of %s" % (str(i + 1), str(avg_across_count)))
-            transactions_values = LogNormal(size=transactions_num).get_samples()
+        for i, transactions_values in enumerate(transaction_samples, 1):
+            print("iter {} out of {}".format(i, len(transaction_samples)))
 
             mean_balances, fail_rates = calculate_mean_balances_and_fail_rates(
                 network_configuration=network_configuration,
@@ -120,10 +122,10 @@ def calculate_mean_balances_and_fail_rates(
     :return:
     """
     lightning_network: LightningNetwork = LightningNetwork(network_configuration)
-    initial_mean_balance = lightning_network.get_relays_mean_balance()
+    initial_mean_balance = lightning_network.get_relay_mean_network_construction_price()
 
     mean_balances: List[float] = [0] * (len(transaction_values) + 1)
-    mean_balances[0] = initial_mean_balance
+    mean_balances[0] = -1 * initial_mean_balance
 
     num_fails = 0
     fail_rates: List[float] = [0] * (len(transaction_values) + 1)
