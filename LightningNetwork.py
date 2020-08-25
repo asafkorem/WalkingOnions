@@ -54,7 +54,7 @@ class LightningNetwork:
         self.configuration: LightningNetworkConfiguration = configuration
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
-        self.fees_collected = 0
+        self.fees_collected: float = 0
 
     def create_relays(self) -> Set[Relay]:
         """
@@ -97,7 +97,7 @@ class LightningNetwork:
         if not self.verify_path(path, value):
             return False
 
-        fees = 0
+        fees: float = 0
         for i in range(0, len(path) - 1):
             current_node, next_node = path[i], path[i + 1]
             try:
