@@ -1,4 +1,4 @@
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Tuple
 from Node import Node
 from Client import Client
 from Relay import Relay
@@ -54,6 +54,7 @@ class LightningNetwork:
         self.configuration: LightningNetworkConfiguration = configuration
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
+        self.fees_collected = 0
 
     def create_relays(self) -> Set[Relay]:
         """
@@ -96,6 +97,7 @@ class LightningNetwork:
         if not self.verify_path(path, value):
             return False
 
+        fees = 0
         for i in range(0, len(path) - 1):
             current_node, next_node = path[i], path[i + 1]
             try:
@@ -104,7 +106,11 @@ class LightningNetwork:
                 raise Exception("Failed to transact between node {0} and node {1} in the path".format(i, i + 1))
 
             # Deduct the fees from value for the next hop transaction
-            value = self.deduct_fees_from_value(value)
+            value, fees = self.deduct_fees_from_value(value)
+            self.fees_collected += fees
+
+        # The fees added to self.fees_collected in the last iteration of the loop above shouldn't be collected.
+        self.fees_collected -= fees
 
         return True
 
@@ -133,7 +139,7 @@ class LightningNetwork:
         new_value: float = value / ((1 - self.configuration.transaction_proportional_fee) ** num_relays_in_path)
         return new_value - value
 
-    def deduct_fees_from_value(self, value) -> float:
+    def deduct_fees_from_value(self, value) -> Tuple[float, float]:
         """
 
         :param value:
@@ -141,7 +147,7 @@ class LightningNetwork:
         """
         proportional_fee = self.configuration.transaction_proportional_fee * value
         fees = self.configuration.relay_transaction_fee + proportional_fee
-        return value - fees
+        return value - fees, fees
 
     def find_path(self, source_client: Client, target_client: Client) -> List[Node]:
         """
@@ -178,7 +184,7 @@ class LightningNetwork:
                 return False
 
             # Deduct the fees from value for the next hop transaction
-            value = self.deduct_fees_from_value(value)
+            value, fees = self.deduct_fees_from_value(value)
 
         return True
 
@@ -195,3 +201,9 @@ class LightningNetwork:
                 relay_to_funds[relay] += balance_in_channel
 
         return list(relay_to_funds.values())
+
+    def get_relay_mean_profit(self) -> float:
+        """
+        :return: Returns the mean profit of the relays from transaction fees.
+        """
+        return self.fees_collected / len(self.relays)

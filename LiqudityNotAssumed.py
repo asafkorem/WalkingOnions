@@ -114,9 +114,6 @@ def calculate_mean_balances_and_fail_rates(
         if not lightning_network.transact(c1, c2, value):
             num_fails += 1
         fail_rates[i] = num_fails / i
-
-        balances = lightning_network.get_relays_balances()
-        mean_balance = np.mean(balances, dtype=np.float64)
-        mean_balances[i] = float(mean_balance)
+        mean_balances[i] = lightning_network.get_relay_mean_profit()
 
     return mean_balances, fail_rates
