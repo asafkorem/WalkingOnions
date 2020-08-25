@@ -9,7 +9,7 @@ from enum import Enum
 import matplotlib.pyplot as plt
 
 
-def plot_graphs():
+def plot_graphs(transactions_num=10**4, avg_across_count=5):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
@@ -29,7 +29,7 @@ def plot_graphs():
 
     class FeeType(Enum):
         BASE = 0
-        PROPORTIONAL = 0
+        PROPORTIONAL = 1
 
     transaction_fee_types = [FeeType.BASE, FeeType.PROPORTIONAL]
 
@@ -39,6 +39,8 @@ def plot_graphs():
 
     for r2r_balance, r2c_balance, fee_type \
             in product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types):
+        print("Running simulation for the following configuration:\nr2r_balance=%s, r2c_balance=%s, fee_type=%s" %
+              (str(r2r_balance), str(r2c_balance), "base_fee" if fee_type == FeeType.BASE else "proportional_fee"))
         network_configuration = LightningNetworkConfiguration(
             default_balance_client_relay_channel_client=float('inf'),
             default_balance_client_relay_channel_relay=r2c_balance,
@@ -54,12 +56,11 @@ def plot_graphs():
         )
 
         # Change this value to avg across more values:
-        avg_across_count = 5
 
         mean_balances_results: List[List[float]] = list()
         fail_rates_results: List[List[float]] = list()
         for i in range(avg_across_count):
-            transactions_num = 10 ** 4
+            print("iter %s out of %s" % (str(i + 1), str(avg_across_count)))
             transactions_values = LogNormal(size=transactions_num).get_samples()
 
             mean_balances, fail_rates = calculate_mean_balances_and_fail_rates(
@@ -73,7 +74,7 @@ def plot_graphs():
         avg_mean_balances: List[float] = [sum(elements) / avg_across_count for elements in zip(*mean_balances_results)]
         avg_fail_rates: List[float] = [sum(elements) / avg_across_count for elements in zip(*fail_rates_results)]
 
-        configuration: Tuple[float, float, FeeType] = Tuple[r2r_balance, r2c_balance, fee_type]
+        configuration: Tuple[float, float, FeeType] = (r2r_balance, r2c_balance, fee_type)
         configuration_to_avg_mean_balances[configuration] = avg_mean_balances
         configuration_to_avg_fail_rates[configuration] = avg_fail_rates
 
@@ -81,6 +82,7 @@ def plot_graphs():
     for r2r_balance, r2c_balance in product(r2r_channel_balances, r2c_channel_balances):
         configuration_name: str = \
             "R2R initial balance: {}, R2C initial balance (relay): {}".format(r2r_balance, r2c_balance)
+        print()
 
 
 def calculate_mean_balances_and_fail_rates(
@@ -106,6 +108,7 @@ def calculate_mean_balances_and_fail_rates(
 
     # Make index start with 1
     for i, value in enumerate(transaction_values, 1):
+        # print("transaction %s out of %s" % (str(i), str(len(transaction_values))))
         c1, c2 = random.sample(lightning_network.clients, 2)
 
         if not lightning_network.transact(c1, c2, value):
