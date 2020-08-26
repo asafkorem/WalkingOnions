@@ -15,6 +15,7 @@ class LightningNetworkConfiguration:
                  transaction_proportional_fee: float,
                  hops_number: int,
                  is_liquidity_assumed: bool,
+                 add_fees_to_value: bool,
                  number_of_relays: int,
                  number_of_clients: int,
                  number_of_relays_per_client: int):
@@ -40,6 +41,7 @@ class LightningNetworkConfiguration:
         self.transaction_proportional_fee: float = transaction_proportional_fee
         self.hops_number: int = hops_number
         self.is_liquidity_assumed: bool = is_liquidity_assumed
+        self.add_fees_to_value: bool = add_fees_to_value
         self.number_of_relays: int = number_of_relays
         self.number_of_clients: int = number_of_clients
         self.number_of_relays_per_client: int = number_of_relays_per_client
@@ -92,7 +94,9 @@ class LightningNetwork:
         :param value:
         :return:
         """
-        value = self.calculate_value_with_cumulative_fees(value)
+        if self.configuration.add_fees_to_value:
+            value = self.calculate_value_with_cumulative_fees(value)
+
         path: List[Node] = self.find_path(source_client, target_client)
         if not self.verify_path(path, value):
             return False

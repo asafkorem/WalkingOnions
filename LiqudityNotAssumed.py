@@ -69,7 +69,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
         fail_ratio_df = store_results(current_configuration_to_avg_fail_rates, plot_path,
                                       "Fail Ratio r2r {} rtc {}".format(r2r, r2c))
         plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
-                    ["Avg Relay Mean Balances in Satoshi r2r {} r2c".format(r2r, r2c),
+                    ["Avg Relay Mean Balances in Satoshi r2r {} r2c {}".format(r2r, r2c),
                      "Fail Ratio r2r {} r2c {}".format(r2r, r2c)])
 
 
@@ -135,6 +135,7 @@ def run_simulation(r2c_balance,
         transaction_proportional_fee=transaction_proportional_fee,
         hops_number=hops_number,
         is_liquidity_assumed=False,
+        add_fees_to_value=False,
         number_of_relays=number_of_relays,
         number_of_clients=number_of_clients,
         number_of_relays_per_client=number_of_relays_per_client
