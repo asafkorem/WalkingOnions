@@ -13,7 +13,7 @@ from statistics import mean
 from util import plot_graphs, plot_histogram, store_results, SimulationConfiguration
 
 
-def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5):
+def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
@@ -64,7 +64,6 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                         + str(current_date_time)
     plot_path = os.path.join('results', subdirectory_name)
 
-    plot_path = os.path.join('results', current_date_time)
     for r2r, r2c in product(r2r_channel_balances, r2c_channel_balances):
         current_configuration_to_avg_mean_balances = \
             {key:configuration_to_avg_mean_balances[key] for key in configuration_to_avg_mean_balances.keys()
@@ -84,11 +83,11 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                     ["Mean Balance", "Fail Rate"],
                     ["Mean Balance of Relays", "Fail Rate"],
                     ["Mean Balance of Relays r2r {} r2c {}".format(r2r, r2c),
-                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)])
+                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)], plot=plot)
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
                                               "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
-        plot_histogram(avg_fail_histogram_df, plot_path, "Fail Histogram r2r {} rtc {}".format(r2r, r2c))
+        plot_histogram(avg_fail_histogram_df, plot_path, "Fail Histogram r2r {} rtc {}".format(r2r, r2c), plot=plot)
 
 
 def calc_mean_balances_and_fail_rates_fail_histograms(

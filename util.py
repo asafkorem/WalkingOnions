@@ -40,9 +40,10 @@ class SimulationConfiguration:
         return "{}%".format(self.proportional_fee * 100)
 
 
-def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename) -> pd.DataFrame:
+def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename, csv=False) -> pd.DataFrame:
     """
 
+    :param csv:
     :param filepath:
     :param results:
     :param filename:
@@ -51,11 +52,19 @@ def store_results(results: Dict[SimulationConfiguration, List[float]], filepath,
     df = pd.DataFrame.from_dict(results)
     if not os.path.exists(filepath):
         os.mkdir(filepath)
-    df.to_csv(os.path.join(filepath, filename + '.csv'), index=False)
+    if csv:
+        df.to_csv(os.path.join(filepath, filename + '.csv'), index=False)
+    else:
+        df.to_pickle(os.path.join(filepath, filename + '.pickle'))
     return df
 
 
-def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = None, plot_names: List[str] = None):
+def plot_graphs(dfs,
+                plot_path,
+                ylabels: List[str] = None,
+                titles: List[str] = None,
+                plot_names: List[str] = None,
+                plot=False):
     """
 
     :param dfs:
@@ -69,7 +78,7 @@ def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = N
         dfs = [dfs]
 
     if ylabels is None:
-        ylabels = ["Result" for i in range(len(dfs))]
+        ylabels = ["Result" for _ in range(len(dfs))]
 
     if titles is None:
         titles = [str(i) for i in range(len(dfs))]
@@ -84,5 +93,23 @@ def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = N
         plt.ylabel(ylabel)
         plt.xlabel('Transactions')
         plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-        plt.show()
+        if plot:
+            plt.show()
+
+
+def plot_histogram(df: pd.DataFrame, plot_path, title, plot=False):
+    """
+
+    :param plot:
+    :param title:
+    :param df:
+    :param plot_path:
+    :return:
+    """
+    for column in df:
+        df[[column]].plot.bar(title=title)
+        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
+        if plot:
+            plt.show()
+    plt.close('all')
 
