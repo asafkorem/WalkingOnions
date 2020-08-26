@@ -130,18 +130,18 @@ def calculate_mean_balances_and_fail_rates(
     return mean_balances, fail_rates
 
 
-def store_results(results: Dict[SimulationConfiguration, List[float]], plot_path, plot_name) -> pd.DataFrame:
+def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename) -> pd.DataFrame:
     """
 
-    :param plot_path:
+    :param filepath:
     :param results:
-    :param plot_name:
+    :param filename:
     :return:
     """
     df = pd.DataFrame.from_dict(results)
-    if not os.path.exists(plot_path):
-        os.mkdir(plot_path)
-    df.to_csv(os.path.join(plot_path, plot_name + '.csv'), index=False)
+    if not os.path.exists(filepath):
+        os.mkdir(filepath)
+    df.to_csv(os.path.join(filepath, filename + '.csv'), index=False)
     return df
 
 
