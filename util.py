@@ -5,23 +5,19 @@ from typing import List, Dict
 import os
 
 
-class FeeType(Enum):
-    BASE = 0
-    PROPORTIONAL = 1
-
-
 class SimulationConfiguration:
-    def __init__(self, r2r_balance, r2c_balance, fee_type):
+    def __init__(self, r2r_balance, r2c_balance, base_fee, proportional_fee):
         self.r2r_balance = r2r_balance
         self.r2c_balance = r2c_balance
-        self.fee_type = fee_type
+        self.base_fee = base_fee
+        self.proportional_fee = proportional_fee
 
     def __hash__(self):
-        return hash((self.r2c_balance, self.r2c_balance, self.fee_type))
+        return hash((self.r2c_balance, self.r2c_balance, self.base_fee, self.proportional_fee))
 
     def __eq__(self, other):
-        return (self.r2r_balance, self.r2c_balance, self.fee_type) \
-               == (other.r2r_balance, other.r2c_balance, other.fee_type)
+        return (self.r2r_balance, self.r2c_balance, self.base_fee, self.proportional_fee) \
+               == (other.r2r_balance, other.r2c_balance, other.base_fee, other.proportional_fee)
 
     def __ne__(self, other):
         # Not strictly necessary, but to avoid having both x==y and x!=y
@@ -29,8 +25,8 @@ class SimulationConfiguration:
         return not (self == other)
 
     def __str__(self):
-        return "r2r {} r2c {} fee_type {}".format(self.r2r_balance, self.r2c_balance,
-                                                  "base_fee" if self.fee_type == FeeType.BASE else "proportional_fee")
+        return "r2r {} r2c {} base-fee {} proportional-fee {}".format(self.r2r_balance, self.r2c_balance,
+                                                                      self.base_fee, self.proportional_fee)
 
 
 def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename) -> pd.DataFrame:

@@ -24,31 +24,26 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     number_of_relays_per_client = 1
 
     # 0.5M, 10M and 100M Satoshies.
-    r2r_channel_balances: List[float] = [5 * (10 ** 6), 10 ** 7, 10 ** 8]
-    r2c_channel_balances: List[float] = [5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    r2c_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
 
-    transaction_base_fee = 100
-    transaction_proportional_fee = 0.01
-
-    transaction_fee_types = [FeeType.BASE, FeeType.PROPORTIONAL]
+    transaction_proportional_fees = [0.005, 0.01, 0.02, 0.03, 0.04, 0.05]
 
     # We need to make sure that every configuration is simulated on the same list of transaction values in order to
     # compare between them correctly.
     transaction_samples: List[List[float]] = [LogNormal(size=transactions_num).get_samples()
                                               for _ in range(avg_across_count)]
 
-    configurations = product(r2r_channel_balances, r2c_channel_balances, transaction_fee_types)
+    configurations = product(r2r_channel_balances, r2c_channel_balances, transaction_proportional_fees)
     groups = [(r2c_balance,
                r2r_balance,
-               fee_type,
-               transaction_base_fee,
                transaction_proportional_fee,
                channel_cost,
                hops_number,
                number_of_relays,
                number_of_clients,
                number_of_relays_per_client,
-               transaction_samples) for r2r_balance, r2c_balance, fee_type in configurations]
+               transaction_samples) for r2r_balance, r2c_balance, transaction_proportional_fee in configurations]
     with Pool(cpu_count()) as pool:
         results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
@@ -101,8 +96,6 @@ def calculate_mean_balances_and_fail_rates(
 
 def run_simulation(r2c_balance,
                    r2r_balance,
-                   fee_type,
-                   transaction_base_fee,
                    transaction_proportional_fee,
                    channel_cost,
                    hops_number,
@@ -114,8 +107,6 @@ def run_simulation(r2c_balance,
 
     :param r2c_balance:
     :param r2r_balance:
-    :param fee_type:
-    :param transaction_base_fee:
     :param transaction_proportional_fee:
     :param channel_cost:
     :param hops_number:
@@ -130,8 +121,8 @@ def run_simulation(r2c_balance,
         default_balance_client_relay_channel_relay=r2c_balance,
         default_balance_relay_relay_channel=r2r_balance,
         channel_cost=channel_cost,
-        relay_transaction_fee=transaction_base_fee if fee_type == FeeType.BASE else 0,
-        transaction_proportional_fee=transaction_proportional_fee if fee_type == FeeType.PROPORTIONAL else 0,
+        relay_transaction_fee=0,
+        transaction_proportional_fee=transaction_proportional_fee,
         hops_number=hops_number,
         is_liquidity_assumed=False,
         number_of_relays=number_of_relays,
@@ -154,6 +145,7 @@ def run_simulation(r2c_balance,
                                       zip(*mean_balances_results)]
     avg_fail_rates: List[float] = [sum(elements) / len(transaction_samples) for elements in zip(*fail_rates_results)]
 
-    configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, fee_type)
+    configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,
+                                                                     transaction_proportional_fee)
 
     return configuration, avg_mean_balances, avg_fail_rates
