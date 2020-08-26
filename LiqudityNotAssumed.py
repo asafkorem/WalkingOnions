@@ -113,10 +113,9 @@ def calculate_mean_balances_and_fail_rates(
     :return:
     """
     lightning_network: LightningNetwork = LightningNetwork(network_configuration)
-    initial_mean_balance = lightning_network.get_relay_mean_network_construction_price()
 
     mean_balances: List[float] = [0] * (len(transaction_values) + 1)
-    mean_balances[0] = -1 * initial_mean_balance
+    mean_balances[0] = lightning_network.get_relays_mean_balance()
 
     num_fails = 0
     fail_rates: List[float] = [0] * (len(transaction_values) + 1)

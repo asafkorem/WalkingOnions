@@ -54,7 +54,7 @@ class LightningNetwork:
         self.configuration: LightningNetworkConfiguration = configuration
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
-        self.sum_relays_balances: float = -1 * self.get_relay_network_construction_price()
+        self.sum_relays_balances: float = -self.calc_construction_price()
 
     def create_relays(self) -> Set[Relay]:
         """
@@ -188,6 +188,7 @@ class LightningNetwork:
 
         return True
 
+    # TODO: remove this func
     def get_relays_balances(self) -> List[float]:
         """
 
@@ -208,32 +209,9 @@ class LightningNetwork:
         """
         return self.sum_relays_balances / len(self.relays)
 
-    def get_relay_r2r_construction_price(self) -> float:
+    def calc_construction_price(self) -> float:
         """
 
         :return:
         """
-        return (len(self.relays) - 1) * len(self.relays) *\
-               (self.configuration.channel_cost + 2 * self.configuration.default_balance_relay_relay_channel) / 2
-
-    def get_relay_r2c_construction_price(self) -> float:
-        """
-
-        :return:
-        """
-        return len(self.clients) * self.configuration.number_of_relays_per_client\
-                                 * self.configuration.default_balance_client_relay_channel_relay
-
-    def get_relay_network_construction_price(self) -> float:
-        """
-
-        :return:
-        """
-        return self.get_relay_r2r_construction_price() + self.get_relay_r2c_construction_price()
-
-    def get_relay_mean_network_construction_price(self) -> float:
-        """
-
-        :return:
-        """
-        return self.get_relay_network_construction_price() / len(self.relays)
+        return (len(self.relays) - 1) * len(self.relays) * self.configuration.channel_cost / 2
