@@ -4,6 +4,19 @@ from typing import List, Dict
 import os
 
 
+SMALL_SIZE = 14
+MEDIUM_SIZE = 18
+BIGGER_SIZE = 20
+
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # font-size of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # font-size of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # font-size of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # font-size of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend font-size
+plt.rc('figure', titlesize=BIGGER_SIZE)  # font-size of the figure title
+
+
 class SimulationConfiguration:
     def __init__(self, r2r_balance, r2c_balance, base_fee, proportional_fee):
         self.r2r_balance = r2r_balance
@@ -24,14 +37,12 @@ class SimulationConfiguration:
         return not (self == other)
 
     def __str__(self):
-        return "r2r {} r2c {} base-fee {} proportional-fee {}".format(self.r2r_balance, self.r2c_balance,
-                                                                      self.base_fee, self.proportional_fee)
+        return "{}%".format(self.proportional_fee * 100)
 
 
-def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename, csv=True) -> pd.DataFrame:
+def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename) -> pd.DataFrame:
     """
 
-    :param csv:
     :param filepath:
     :param results:
     :param filename:
@@ -40,48 +51,38 @@ def store_results(results: Dict[SimulationConfiguration, List[float]], filepath,
     df = pd.DataFrame.from_dict(results)
     if not os.path.exists(filepath):
         os.mkdir(filepath)
-    if not csv:
-        df.to_pickle(os.path.join(filepath, filename + '.pickle'))
-    else:
-        df.to_csv(os.path.join(filepath, filename + '.pickle'), index=False)
+    df.to_csv(os.path.join(filepath, filename + '.csv'), index=False)
     return df
 
 
-def plot_graphs(dfs, plot_path, titles=None, plot=False):
+def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = None, plot_names: List[str] = None):
     """
-    :param plot:
-    :param plot_path:
+
     :param dfs:
+    :param plot_path:
+    :param ylabels:
     :param titles:
+    :param plot_names:
     :return:
     """
     if type(dfs) is not list:
         dfs = [dfs]
+
+    if ylabels is None:
+        ylabels = ["Result" for i in range(len(dfs))]
+
     if titles is None:
         titles = [str(i) for i in range(len(dfs))]
-    if type(titles) is not list:
-        titles = [titles]
-    for df, title in zip(dfs, titles):
-        df.plot(title=title, figsize=(20, 10)).legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
-        if plot:
-            plt.show()
-    plt.close('all')
 
+    if plot_names is None:
+        plot_names = titles
 
-def plot_histogram(df: pd.DataFrame, plot_path, title, plot=False):
-    """
-
-    :param plot:
-    :param title:
-    :param df:
-    :param plot_path:
-    :return:
-    """
-    for column in df:
-        df[[column]].plot.bar(title=title)
-        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
-        if plot:
-            plt.show()
-    plt.close('all')
+    for df, ylabel, title, name in zip(dfs, ylabels, titles, plot_names):
+        df.plot(title=title, figsize=(20, 10))\
+            .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
+                    title='Proportional Fees')
+        plt.ylabel(ylabel)
+        plt.xlabel('Transactions')
+        plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+        plt.show()
 

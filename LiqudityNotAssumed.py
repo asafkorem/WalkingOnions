@@ -13,7 +13,7 @@ from statistics import mean
 from util import plot_graphs, plot_histogram, store_results, SimulationConfiguration
 
 
-def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
+def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
@@ -64,6 +64,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                         + str(current_date_time)
     plot_path = os.path.join('results', subdirectory_name)
 
+    plot_path = os.path.join('results', current_date_time)
     for r2r, r2c in product(r2r_channel_balances, r2c_channel_balances):
         current_configuration_to_avg_mean_balances = \
             {key:configuration_to_avg_mean_balances[key] for key in configuration_to_avg_mean_balances.keys()
@@ -80,8 +81,10 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
         fail_ratio_df = store_results(current_configuration_to_avg_fail_rates, plot_path,
                                       "Fail Ratio r2r {} rtc {}".format(r2r, r2c))
         plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
-                    ["Avg Relay Mean Balances in Satoshi r2r {} r2c {}".format(r2r, r2c),
-                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)], plot)
+                    ["Mean Balance", "Fail Rate"],
+                    ["Mean Balance of Relays", "Fail Rate"],
+                    ["Mean Balance of Relays r2r {} r2c {}".format(r2r, r2c),
+                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)])
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
                                               "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
@@ -165,6 +168,7 @@ def run_simulation(r2c_balance,
             network_configuration=network_configuration,
             transaction_values=transactions_values
         )
+
         mean_balances_results.append(mean_balances)
         fail_rates_results.append(fail_rates)
         fail_histogram_results.append(fail_histogram)
