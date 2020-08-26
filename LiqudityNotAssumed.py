@@ -159,8 +159,8 @@ def plot_graphs(dfs, plot_path, titles: Optional[List[str]] = None):
         titles = [str(i) for i in range(len(dfs))]
     for df, title in zip(dfs, titles):
         df.plot(title=title, figsize=(20, 10)).legend(loc='center left',bbox_to_anchor=(1.0, 0.5))
-        plt.show()
         plt.savefig(fname=os.path.join(plot_path, title + '.png'))
+        plt.show()
 
 
 def run_simulation(r2c_balance,
