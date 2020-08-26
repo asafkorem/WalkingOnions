@@ -9,10 +9,11 @@ from datetime import datetime
 from multiprocessing import Pool, cpu_count
 import tqdm
 import istarmap
-from util import plot_graphs, store_results, SimulationConfiguration
+from statistics import mean
+from util import plot_graphs, plot_histogram, store_results, SimulationConfiguration
 
 
-def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5):
+def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
@@ -48,20 +49,30 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
         results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
-        = {configuration: avg_mean_balances for configuration, avg_mean_balances, avg_fail_rates in results}
+        = {configuration: avg_mean_balances
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]]\
-        = {configuration: avg_fail_rates for configuration, avg_mean_balances, avg_fail_rates in results}
+        = {configuration: avg_fail_rates
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
+    configuration_to_avg_fail_histograms: Dict[SimulationConfiguration, List[float]] =\
+        {configuration: avg_fail_histogram
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
 
     now = datetime.now()
     current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
+    subdirectory_name = "t_num " + str(transactions_num) + " avg_across " + str(avg_across_count) + " "\
+                        + str(current_date_time)
+    plot_path = os.path.join('results', subdirectory_name)
 
-    plot_path = os.path.join('results', current_date_time)
     for r2r, r2c in product(r2r_channel_balances, r2c_channel_balances):
         current_configuration_to_avg_mean_balances = \
             {key:configuration_to_avg_mean_balances[key] for key in configuration_to_avg_mean_balances.keys()
              if key.r2r_balance == r2r and key.r2c_balance == r2c}
         current_configuration_to_avg_fail_rates = \
             {key: configuration_to_avg_fail_rates[key] for key in configuration_to_avg_fail_rates.keys()
+             if key.r2r_balance == r2r and key.r2c_balance == r2c}
+        current_configuration_to_avg_fail_histogram = \
+            {key: configuration_to_avg_fail_histograms[key] for key in configuration_to_avg_fail_histograms.keys()
              if key.r2r_balance == r2r and key.r2c_balance == r2c}
 
         avg_mean_balances_df = store_results(current_configuration_to_avg_mean_balances, plot_path,
@@ -70,13 +81,17 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                                       "Fail Ratio r2r {} rtc {}".format(r2r, r2c))
         plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
                     ["Avg Relay Mean Balances in Satoshi r2r {} r2c {}".format(r2r, r2c),
-                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)])
+                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)], plot)
+
+        avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
+                                              "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
+        plot_histogram(avg_fail_histogram_df, plot_path, "Fail Histogram r2r {} rtc {}".format(r2r, r2c))
 
 
-def calculate_mean_balances_and_fail_rates(
+def calc_mean_balances_and_fail_rates_fail_histograms(
         network_configuration: LightningNetworkConfiguration,
         transaction_values: List[float]
-) -> (List[float], List[float]):
+) -> (List[float], List[float], List[int]):
     """
 
     :param network_configuration:
@@ -101,7 +116,7 @@ def calculate_mean_balances_and_fail_rates(
         fail_rates[i] = num_fails / i
         mean_balances[i] = lightning_network.get_relays_mean_balance()
 
-    return mean_balances, fail_rates
+    return mean_balances, fail_rates, lightning_network.fail_histogram
 
 
 def run_simulation(r2c_balance,
@@ -112,7 +127,7 @@ def run_simulation(r2c_balance,
                    number_of_relays,
                    number_of_clients,
                    number_of_relays_per_client,
-                   transaction_samples) -> Tuple[SimulationConfiguration, List[float], List[float]]:
+                   transaction_samples) -> Tuple[SimulationConfiguration, List[float], List[float], List[float]]:
     """
 
     :param r2c_balance:
@@ -143,20 +158,22 @@ def run_simulation(r2c_balance,
 
     mean_balances_results: List[List[float]] = list()
     fail_rates_results: List[List[float]] = list()
+    fail_histogram_results: List[List[int]] = list()
+
     for i, transactions_values in enumerate(transaction_samples, 1):
-        mean_balances, fail_rates = calculate_mean_balances_and_fail_rates(
+        mean_balances, fail_rates, fail_histogram = calc_mean_balances_and_fail_rates_fail_histograms(
             network_configuration=network_configuration,
             transaction_values=transactions_values
         )
-
         mean_balances_results.append(mean_balances)
         fail_rates_results.append(fail_rates)
+        fail_histogram_results.append(fail_histogram)
 
-    avg_mean_balances: List[float] = [sum(elements) / len(transaction_samples) for elements in
-                                      zip(*mean_balances_results)]
-    avg_fail_rates: List[float] = [sum(elements) / len(transaction_samples) for elements in zip(*fail_rates_results)]
+    avg_mean_balances: List[float] = [mean(elements) for elements in zip(*mean_balances_results)]
+    avg_fail_rates: List[float] = [mean(elements) for elements in zip(*fail_rates_results)]
+    avg_fail_histogram: List[float] = [mean(elements) for elements in zip(*fail_histogram_results)]
 
     configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,
                                                                      transaction_proportional_fee)
 
-    return configuration, avg_mean_balances, avg_fail_rates
+    return configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram

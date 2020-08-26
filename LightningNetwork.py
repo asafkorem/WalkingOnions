@@ -57,6 +57,7 @@ class LightningNetwork:
         self.relays: Set[Relay] = self.create_relays()
         self.clients: Set[Client] = self.create_clients()
         self.sum_relays_balances: float = -self.calc_construction_price()
+        self.fail_histogram: List[int] = [0] * (self.configuration.hops_number + 3)
 
     def create_relays(self) -> Set[Relay]:
         """
@@ -185,6 +186,7 @@ class LightningNetwork:
 
             current_node_balance_in_channel = channel.balance1 if channel.node1 == current_node else channel.balance2
             if value > current_node_balance_in_channel:
+                self.fail_histogram[i] += 1
                 return False
 
             # Deduct the fees from value for the next hop transaction

@@ -1,4 +1,3 @@
-from enum import Enum
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import List, Dict
@@ -29,9 +28,10 @@ class SimulationConfiguration:
                                                                       self.base_fee, self.proportional_fee)
 
 
-def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename) -> pd.DataFrame:
+def store_results(results: Dict[SimulationConfiguration, List[float]], filepath, filename, csv=True) -> pd.DataFrame:
     """
 
+    :param csv:
     :param filepath:
     :param results:
     :param filename:
@@ -40,13 +40,16 @@ def store_results(results: Dict[SimulationConfiguration, List[float]], filepath,
     df = pd.DataFrame.from_dict(results)
     if not os.path.exists(filepath):
         os.mkdir(filepath)
-    df.to_csv(os.path.join(filepath, filename + '.csv'), index=False)
+    if not csv:
+        df.to_pickle(os.path.join(filepath, filename + '.pickle'))
+    else:
+        df.to_csv(os.path.join(filepath, filename + '.pickle'), index=False)
     return df
 
 
-def plot_graphs(dfs, plot_path, titles=None):
+def plot_graphs(dfs, plot_path, titles=None, plot=False):
     """
-
+    :param plot:
     :param plot_path:
     :param dfs:
     :param titles:
@@ -59,6 +62,26 @@ def plot_graphs(dfs, plot_path, titles=None):
     if type(titles) is not list:
         titles = [titles]
     for df, title in zip(dfs, titles):
-        df.plot(title=title, figsize=(20, 10)).legend(loc='center left',bbox_to_anchor=(1.0, 0.5))
+        df.plot(title=title, figsize=(20, 10)).legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
         plt.savefig(fname=os.path.join(plot_path, title + '.png'))
-        plt.show()
+        if plot:
+            plt.show()
+    plt.close('all')
+
+
+def plot_histogram(df: pd.DataFrame, plot_path, title, plot=False):
+    """
+
+    :param plot:
+    :param title:
+    :param df:
+    :param plot_path:
+    :return:
+    """
+    for column in df:
+        df[[column]].plot.bar(title=title)
+        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
+        if plot:
+            plt.show()
+    plt.close('all')
+
