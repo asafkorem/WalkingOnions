@@ -91,9 +91,15 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]]\
         = {configuration: avg_fail_rates for configuration, avg_mean_balances, avg_fail_rates in results}
 
-    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, "Avg Relay Mean Balances in Satoshi")
-    fail_ratio_df = store_results(configuration_to_avg_fail_rates, "Fail Ratio")
-    plot_graphs([avg_mean_balances_df, fail_ratio_df], ["Avg Relay Mean Balances in Satoshi", "Fail Ratio"])
+    now = datetime.now()
+    current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
+    plot_path = os.path.join('results', current_date_time)
+    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, plot_path,
+                                         "Avg Relay Mean Balances in Satoshi")
+    fail_ratio_df = store_results(configuration_to_avg_fail_rates, plot_path,
+                                  "Fail Ratio")
+    plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
+                ["Avg Relay Mean Balances in Satoshi", "Fail Ratio"])
 
 
 def calculate_mean_balances_and_fail_rates(
@@ -128,26 +134,25 @@ def calculate_mean_balances_and_fail_rates(
     return mean_balances, fail_rates
 
 
-def store_results(results: Dict[SimulationConfiguration, List[float]], plot_name) -> pd.DataFrame:
+def store_results(results: Dict[SimulationConfiguration, List[float]], plot_path, plot_name) -> pd.DataFrame:
     """
 
+    :param plot_path:
     :param results:
     :param plot_name:
     :return:
     """
-    now = datetime.now()
-    current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
     df = pd.DataFrame.from_dict(results)
-    directory = os.path.join("results", current_date_time)
-    if not os.path.exists(directory):
-        os.mkdir(directory)
-    df.to_csv(os.path.join("results", current_date_time, plot_name + '.csv'), index=False)
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    df.to_csv(os.path.join(plot_path, plot_name + '.csv'), index=False)
     return df
 
 
-def plot_graphs(dfs, titles: Optional[List[str]] = None):
+def plot_graphs(dfs, plot_path, titles: Optional[List[str]] = None):
     """
 
+    :param plot_path:
     :param dfs:
     :param titles:
     :return:
@@ -159,6 +164,7 @@ def plot_graphs(dfs, titles: Optional[List[str]] = None):
     for df, title in zip(dfs, titles):
         df.plot(title=title, figsize=(20, 10)).legend(loc='center left',bbox_to_anchor=(1.0, 0.5))
         plt.show()
+        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
 
 
 def run_simulation(r2c_balance,
