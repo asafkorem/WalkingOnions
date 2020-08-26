@@ -8,4 +8,4 @@ if __name__ == '__main__':
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     print("Starting plotting Liquidity Not Assumed graphs at " + str(current_time))
-    LiqudityNotAssumed.run_simulations_and_plot_graphs(transactions_num=20, avg_across_count=1)
+    LiqudityNotAssumed.run_simulations_and_plot_graphs(transactions_num=10000, avg_across_count=1)

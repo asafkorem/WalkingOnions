@@ -6,7 +6,7 @@ import os
 
 SMALL_SIZE = 14
 MEDIUM_SIZE = 18
-BIGGER_SIZE = 24
+BIGGER_SIZE = 20
 
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)     # font-size of the axes title
@@ -62,6 +62,7 @@ def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = N
     :param plot_path:
     :param ylabels:
     :param titles:
+    :param plot_names:
     :return:
     """
     if type(dfs) is not list:
@@ -78,7 +79,7 @@ def plot_graphs(dfs, plot_path, ylabels: List[str] = None, titles: List[str] = N
 
     for df, ylabel, title, name in zip(dfs, ylabels, titles, plot_names):
         df.plot(title=title, figsize=(20, 10))\
-            .legend(loc="upper left", frameon=True, framealpha=1, ncol=1, shadow=True, borderpad=1,
+            .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                     title='Proportional Fees')
         plt.ylabel(ylabel)
         plt.xlabel('Transactions')
