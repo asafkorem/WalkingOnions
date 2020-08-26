@@ -9,7 +9,7 @@ from datetime import datetime
 from multiprocessing import Pool, cpu_count
 import tqdm
 import istarmap
-from util import plot_graphs, store_results, FeeType, SimulationConfiguration
+from util import plot_graphs, store_results, SimulationConfiguration
 
 
 def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5):
@@ -21,7 +21,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     hops_number = 3
     number_of_relays = 100
     number_of_clients = 10 ** 5
-    number_of_relays_per_client = 1
+    number_of_relays_per_client = 5
 
     # 0.5M, 10M and 100M Satoshies.
     r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
@@ -54,13 +54,23 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
 
     now = datetime.now()
     current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
+
     plot_path = os.path.join('results', current_date_time)
-    avg_mean_balances_df = store_results(configuration_to_avg_mean_balances, plot_path,
-                                         "Avg Relay Mean Balances in Satoshi")
-    fail_ratio_df = store_results(configuration_to_avg_fail_rates, plot_path,
-                                  "Fail Ratio")
-    plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
-                ["Avg Relay Mean Balances in Satoshi", "Fail Ratio"])
+    for r2r, r2c in product(r2r_channel_balances, r2c_channel_balances):
+        current_configuration_to_avg_mean_balances = \
+            {key:configuration_to_avg_mean_balances[key] for key in configuration_to_avg_mean_balances.keys()
+             if key.r2r_balance == r2r and key.r2c_balance == r2c}
+        current_configuration_to_avg_fail_rates = \
+            {key: configuration_to_avg_fail_rates[key] for key in configuration_to_avg_fail_rates.keys()
+             if key.r2r_balance == r2r and key.r2c_balance == r2c}
+
+        avg_mean_balances_df = store_results(current_configuration_to_avg_mean_balances, plot_path,
+                                             "Avg Relay Mean Balances in Satoshi r2r {} r2c {}".format(r2r, r2c))
+        fail_ratio_df = store_results(current_configuration_to_avg_fail_rates, plot_path,
+                                      "Fail Ratio r2r {} rtc {}".format(r2r, r2c))
+        plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
+                    ["Avg Relay Mean Balances in Satoshi r2r {} r2c".format(r2r, r2c),
+                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)])
 
 
 def calculate_mean_balances_and_fail_rates(
