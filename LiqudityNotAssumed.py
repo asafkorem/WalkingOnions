@@ -50,7 +50,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     """
     channel_cost = 44 * (10 ** 3)  # Based on avg. miners fee
     hops_number = 3
-    number_of_relays = 10 ** 3
+    number_of_relays = 100
     number_of_clients = 10 ** 5
     number_of_relays_per_client = 1
 
@@ -62,9 +62,6 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     transaction_proportional_fee = 0.01
 
     transaction_fee_types = [FeeType.BASE, FeeType.PROPORTIONAL]
-
-    configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]] = dict()
-    configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]] = dict()
 
     # We need to make sure that every configuration is simulated on the same list of transaction values in order to
     # compare between them correctly.
@@ -200,7 +197,7 @@ def run_simulation(r2c_balance,
         relay_transaction_fee=transaction_base_fee if fee_type == FeeType.BASE else 0,
         transaction_proportional_fee=transaction_proportional_fee if fee_type == FeeType.PROPORTIONAL else 0,
         hops_number=hops_number,
-        is_liquidity_assumed=True,
+        is_liquidity_assumed=False,
         number_of_relays=number_of_relays,
         number_of_clients=number_of_clients,
         number_of_relays_per_client=number_of_relays_per_client
