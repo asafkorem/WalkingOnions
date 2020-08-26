@@ -60,8 +60,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
 
     now = datetime.now()
     current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
-    subdirectory_name = "t_num " + str(transactions_num) + " avg_across " + str(avg_across_count) + " "\
-                        + str(current_date_time)
+    subdirectory_name = "t_nu-" + str(transactions_num) + " avg_across-" + str(avg_across_count) + " time-" + str(current_date_time)
     plot_path = os.path.join('results', subdirectory_name)
 
     for r2r, r2c in product(r2r_channel_balances, r2c_channel_balances):
