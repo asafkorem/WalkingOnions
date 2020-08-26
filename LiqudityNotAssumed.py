@@ -145,7 +145,7 @@ def store_results(results: Dict[SimulationConfiguration, List[float]], plot_path
     return df
 
 
-def plot_graphs(dfs, plot_path, titles: Optional[List[str]] = None):
+def plot_graphs(dfs, plot_path, titles=None):
     """
 
     :param plot_path:
@@ -157,6 +157,8 @@ def plot_graphs(dfs, plot_path, titles: Optional[List[str]] = None):
         dfs = [dfs]
     if titles is None:
         titles = [str(i) for i in range(len(dfs))]
+    if type(titles) is not list:
+        titles = [titles]
     for df, title in zip(dfs, titles):
         df.plot(title=title, figsize=(20, 10)).legend(loc='center left',bbox_to_anchor=(1.0, 0.5))
         plt.savefig(fname=os.path.join(plot_path, title + '.png'))
