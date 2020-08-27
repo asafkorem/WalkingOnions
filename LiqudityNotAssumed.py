@@ -22,7 +22,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     hops_number = 3
     number_of_relays = 100
     number_of_clients = 10 ** 5
-    number_of_relays_per_client = 5
+    number_of_relays_per_client = 1
 
     # 0.5M, 10M and 100M Satoshies.
     r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
@@ -82,10 +82,10 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                     ["Mean Balance", "Fail Rate"],
                     ["Mean Balance of Relays", "Fail Rate"],
                     ["Mean Balance of Relays r2r {} r2c {}".format(r2r, r2c),
-                     "Fail Ratio r2r {} r2c {}".format(r2r, r2c)], plot=plot)
+                     "Fail Rate r2r {} r2c {}".format(r2r, r2c)], plot=plot)
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
-                                              "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
+                                              "Transaction Fail Histogram", csv=False)
         plot_histogram(avg_fail_histogram_df, plot_path, "Fail Histogram r2r {} rtc {}".format(r2r, r2c), plot=plot)
 
 

@@ -108,6 +108,8 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, plot=False):
     """
     for column in df:
         df[[column]].plot.bar(title=title)
+        plt.ylabel('Transactions Failed')
+        plt.xlabel('Hop Number')
         plt.savefig(fname=os.path.join(plot_path, title + '.png'))
         if plot:
             plt.show()
