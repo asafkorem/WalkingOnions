@@ -10,7 +10,7 @@ from multiprocessing import Pool, cpu_count
 import tqdm
 import istarmap
 from statistics import mean
-from util import plot_graphs, plot_histogram, store_results, SimulationConfiguration
+from util import plot_graphs, plot_histogram, plot_density, store_results, SimulationConfiguration
 
 
 def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
@@ -50,13 +50,16 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
 
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
         = {configuration: avg_mean_balances
-           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]]\
         = {configuration: avg_fail_rates
-           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
     configuration_to_avg_fail_histograms: Dict[SimulationConfiguration, List[int]] =\
         {configuration: avg_fail_histogram
-         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram in results}
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
+    configuration_to_relays_balances: Dict[SimulationConfiguration, List[int]] =\
+        {configuration: sorted(relays_balances)
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
 
     now = datetime.now()
     current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
@@ -73,6 +76,9 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
              if key.r2r_balance == r2r and key.r2c_balance == r2c}
         current_configuration_to_avg_fail_histogram = \
             {key: configuration_to_avg_fail_histograms[key] for key in configuration_to_avg_fail_histograms.keys()
+             if key.r2r_balance == r2r and key.r2c_balance == r2c}
+        current_configuration_to_relays_balances = \
+            {key: configuration_to_relays_balances[key] for key in configuration_to_relays_balances.keys()
              if key.r2r_balance == r2r and key.r2c_balance == r2c}
 
         avg_mean_balances_df = store_results(current_configuration_to_avg_mean_balances, plot_path,
@@ -91,11 +97,17 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                        "Fail Histogram r2r {} rtc {}".format(r2r, r2c),
                        ["Failed at Hop (Index)", "Percentage From Total Failures"], plot=plot)
 
+        relays_balances_df = store_results(current_configuration_to_relays_balances, plot_path,
+                                           "Density of Relay Balances r2r {} rtc {}".format(r2r, r2c), csv=False)
+        plot_density(relays_balances_df, plot_path, "Density of Relay Balances",
+                     "Density of Relay Balances r2r {} rtc {}".format(r2r, r2c),
+                     ["Relay Balance", "Density"], plot=plot)
 
-def calc_mean_balances_fail_rates_and_fail_histograms(
+
+def calc_simulation_results(
         network_configuration: LightningNetworkConfiguration,
         transaction_values: List[float]
-) -> (List[float], List[float], List[int]):
+) -> (List[float], List[float], List[int], List[float]):
     """
 
     :param network_configuration:
@@ -112,7 +124,6 @@ def calc_mean_balances_fail_rates_and_fail_histograms(
 
     # Make index start with 1
     for i, value in enumerate(transaction_values, 1):
-        # print("transaction %s out of %s" % (str(i), str(len(transaction_values))))
         c1, c2 = random.sample(lightning_network.clients, 2)
 
         if not lightning_network.transact(c1, c2, value):
@@ -123,7 +134,7 @@ def calc_mean_balances_fail_rates_and_fail_histograms(
     normalized_fail_histogram = [int(element / num_fails * 100) if num_fails
                                  else int(100 / len(lightning_network.fail_histogram))
                                  for element in lightning_network.fail_histogram]
-    return mean_balances, fail_rates, normalized_fail_histogram
+    return mean_balances, fail_rates, normalized_fail_histogram, lightning_network.get_relays_balances()
 
 
 def run_simulation(r2c_balance,
@@ -167,10 +178,10 @@ def run_simulation(r2c_balance,
     mean_balances_results: List[List[float]] = list()
     fail_rates_results: List[List[float]] = list()
     fail_histogram_results: List[List[int]] = list()
-    relays_balances: List[List[float]] = list()
+    relays_balances_results: List[List[float]] = list()
 
     for i, transactions_values in enumerate(transaction_samples, 1):
-        mean_balances, fail_rates, fail_histogram = calc_mean_balances_fail_rates_and_fail_histograms(
+        mean_balances, fail_rates, fail_histogram, relays_balances = calc_simulation_results(
             network_configuration=network_configuration,
             transaction_values=transactions_values
         )
@@ -178,12 +189,14 @@ def run_simulation(r2c_balance,
         mean_balances_results.append(mean_balances)
         fail_rates_results.append(fail_rates)
         fail_histogram_results.append(fail_histogram)
+        relays_balances_results.append(relays_balances)
 
     avg_mean_balances: List[float] = [mean(elements) for elements in zip(*mean_balances_results)]
     avg_fail_rates: List[float] = [mean(elements) for elements in zip(*fail_rates_results)]
     avg_fail_histogram: List[int] = [int(mean(elements)) for elements in zip(*fail_histogram_results)]
+    avg_relays_balances: List[float] = [mean(elements) for elements in zip(*relays_balances_results)]
 
     configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,
                                                                      transaction_proportional_fee)
 
-    return configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram
+    return configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, avg_relays_balances
