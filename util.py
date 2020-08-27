@@ -95,23 +95,27 @@ def plot_graphs(dfs,
         plt.savefig(fname=os.path.join(plot_path, name + '.png'))
         if plot:
             plt.show()
+    plt.close('all')
 
 
-def plot_histogram(df: pd.DataFrame, plot_path, title, plot=False):
+def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
     """
 
-    :param plot:
-    :param title:
     :param df:
     :param plot_path:
+    :param name:
+    :param title:
+    :param plot:
     :return:
     """
-    for column in df:
-        df[[column]].plot.bar(title=title)
-        plt.ylabel('Transactions Failed')
-        plt.xlabel('Hop Number')
-        plt.savefig(fname=os.path.join(plot_path, title + '.png'))
-        if plot:
-            plt.show()
+    df.plot.bar(title=title, figsize=(20, 10))\
+        .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
+                title='Proportional Fees')
+    plt.xlabel(labels[0])
+    plt.ylabel(labels[1])
+    plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+    if plot:
+        plt.show()
+
     plt.close('all')
 
