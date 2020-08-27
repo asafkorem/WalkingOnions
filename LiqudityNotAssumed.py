@@ -87,7 +87,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
                                               "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
-        plot_histogram(avg_fail_histogram_df, plot_path, "Fail Histogram",
+        plot_histogram(avg_fail_histogram_df, plot_path, "Transaction Failure Histogram",
                        "Fail Histogram r2r {} rtc {}".format(r2r, r2c),
                        ["Failed at Hop (Index)", "Percentage From Total Failures"], plot=plot)
 
