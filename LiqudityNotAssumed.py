@@ -11,6 +11,7 @@ import tqdm
 import istarmap
 from statistics import mean
 from util import plot_graphs, plot_histogram, plot_freq, store_results, SimulationConfiguration
+import math
 
 
 def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
@@ -20,8 +21,8 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     """
     channel_cost = 44 * (10 ** 3)  # Based on avg. miners fee
     hops_number = 3
-    number_of_relays = 100
-    number_of_clients = 10 ** 5
+    number_of_relays = 50
+    number_of_clients = 5000
     number_of_relays_per_client = 1
 
     # 0.5M, 10M and 100M Satoshies.
@@ -86,23 +87,29 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
         fail_ratio_df = store_results(current_configuration_to_avg_fail_rates, plot_path,
                                       "Fail Ratio r2r {:.0E} r2c {:.0E}".format(r2r, r2c))
         plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
-                    ["Mean Balance", "Fail Rate"],
-                    ["Mean Balance of Relays", "Fail Rate"],
+                    ["Mean Balance in sat", "Fail Ratio"],
+                    ["Mean Balance of Relays", "Fail Ratio"],
                     ["Mean Balance of Relays r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
-                     "Fail Rate r2r {:.0E} r2c {:.0E}".format(r2r, r2c)], plot=plot)
+                     "Fail Rate r2r {:.0E} r2c {:.0E}".format(r2r, r2c)],
+                    ["L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c)] * 2,
+                    plot=plot)
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
                                               "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c), csv=False)
         plot_histogram(avg_fail_histogram_df, plot_path, "Transaction Failure Histogram",
                        "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
-                       ["Failed at Hop (Index)", "Number of Fails"], plot=plot)
+                       ["Failed at Hop (Index)", "Number of Fails"],
+                       "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c),
+                       plot=plot)
 
         relays_balances_df = store_results(current_configuration_to_relays_balances, plot_path,
                                            "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
                                            csv=False)
         plot_freq(relays_balances_df, plot_path, "Frequency of Relay Balances",
                   "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
-                  ["Relay Balance", "Frequency"], plot=plot)
+                  ["Relay Balance", "Frequency"],
+                  "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c),
+                  plot=plot)
 
 
 def calc_simulation_results(
@@ -144,7 +151,7 @@ def run_simulation(r2c_balance,
                    number_of_clients,
                    number_of_relays_per_client,
                    transaction_samples) \
-        -> Tuple[SimulationConfiguration, List[float], List[float], List[float], List[float]]:
+        -> Tuple[SimulationConfiguration, List[float], List[float], List[int], List[float]]:
     """
 
     :param r2c_balance:
@@ -191,7 +198,7 @@ def run_simulation(r2c_balance,
 
     avg_mean_balances: List[float] = [mean(elements) for elements in zip(*mean_balances_results)]
     avg_fail_rates: List[float] = [mean(elements) for elements in zip(*fail_rates_results)]
-    avg_fail_histogram: List[float] = [(mean(elements)) for elements in zip(*fail_histogram_results)]
+    avg_fail_histogram: List[int] = [math.floor(mean(elements)) for elements in zip(*fail_histogram_results)]
     avg_relays_balances: List[float] = [mean(elements) for elements in zip(*relays_balances_results)]
 
     configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,

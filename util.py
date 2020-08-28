@@ -4,6 +4,7 @@ from typing import List, Dict
 import os
 import seaborn as sns
 import itertools
+import tikzplotlib as tikz
 
 
 SMALL_SIZE = 14
@@ -66,6 +67,7 @@ def plot_graphs(dfs,
                 ylabels: List[str] = None,
                 titles: List[str] = None,
                 plot_names: List[str] = None,
+                subtitles: List[str] = None,
                 plot=False):
     """
 
@@ -88,19 +90,21 @@ def plot_graphs(dfs,
     if plot_names is None:
         plot_names = titles
 
-    for df, ylabel, title, name in zip(dfs, ylabels, titles, plot_names):
-        df.plot(title=name, figsize=(20, 10))\
+    for df, ylabel, title, name, subtitle in zip(dfs, ylabels, titles, plot_names, subtitles):
+        df.plot(title=title + "\n" + subtitle, figsize=(20, 10))\
             .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
-                    title='Proportional Fees')
+                    title='Proportional Fees in %')
+        plt.title(title + "\n" + subtitle, fontsize=20)
         plt.ylabel(ylabel)
-        plt.xlabel('Transactions')
+        plt.xlabel('Transaction Number')
         plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+        tikz.save(os.path.join(plot_path, name + '.tex'))
         if plot:
             plt.show()
     plt.close('all')
 
 
-def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
+def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=False):
     """
 
     :param df:
@@ -111,19 +115,21 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False)
     :param plot:
     :return:
     """
-    df.plot.bar(title=name, figsize=(20, 10))\
+    df.plot.bar(figsize=(20, 10))\
         .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                 title='Proportional Fees')
     plt.xlabel(labels[0])
     plt.ylabel(labels[1])
+    plt.title(title + "\n" + subtitle, fontsize=20)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+    tikz.save(os.path.join(plot_path, name + '.tex'))
     if plot:
         plt.show()
 
     plt.close('all')
 
 
-def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
+def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=False):
     """
 
     :param df:
@@ -134,30 +140,19 @@ def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
     :param plot:
     :return:
     """
-    # df.plot.hist(title=name, alpha=0.5, bins=100, figsize=(20, 10))\
-    #     .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
-    #             title='Proportional Fees')
-    #
-    # plt.xlabel(labels[0])
-    # plt.ylabel(labels[1])
-    # plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-    # if plot:
-    #     plt.show()
-    # plt.close('all')
-
     df_columns: List[pd.DataFrame] = [df[[column]] for column in df]
-    fig, axes = plt.subplots(2, 3, figsize=(20, 10), sharey=True, dpi=100)
+    fig, axes = plt.subplots(2, 3, figsize=(20, 10), dpi=100)
     palette = itertools.cycle(sns.color_palette())
-    fig.suptitle(title)
+    fig.suptitle(title + "\n" + subtitle)
     for df_column, axis in zip(df_columns, axes.flatten()):
-        axis.set_xlabel('relay balance')
+        axis.set_xlabel('relay balance in sat')
         axis.set_ylabel('freq')
-        plt.setp(axis.get_yticklabels(), visible=True)
         sns.distplot(df_column, color=next(palette), ax=axis, kde=False,
                      hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0})
     fig.legend(title='proportional fee:', labels=[str(label_name) for label_name in df.columns],
                loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+    tikz.save(os.path.join(plot_path, name + '.tex'))
     if plot:
         plt.show()
     plt.close('all')
