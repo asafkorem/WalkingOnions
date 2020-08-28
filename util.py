@@ -109,7 +109,7 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False)
     :param plot:
     :return:
     """
-    df.plot(title=title, figsize=(20, 10))\
+    df.plot.bar(title=title, figsize=(20, 10))\
         .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                 title='Proportional Fees')
     plt.xlabel(labels[0])
@@ -141,6 +141,5 @@ def plot_density(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
     if plot:
         plt.show()
-
     plt.close('all')
 

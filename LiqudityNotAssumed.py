@@ -45,7 +45,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                number_of_clients,
                number_of_relays_per_client,
                transaction_samples) for r2r_balance, r2c_balance, transaction_proportional_fee in configurations]
-    with Pool(cpu_count()) as pool:
+    with Pool(int(cpu_count())) as pool:
         results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
@@ -131,10 +131,7 @@ def calc_simulation_results(
         fail_rates[i] = num_fails / i
         mean_balances[i] = lightning_network.get_relays_mean_balance()
 
-    normalized_fail_histogram = [int(element / num_fails * 100) if num_fails
-                                 else int(100 / len(lightning_network.fail_histogram))
-                                 for element in lightning_network.fail_histogram]
-    return mean_balances, fail_rates, normalized_fail_histogram, lightning_network.get_relays_balances()
+    return mean_balances, fail_rates, lightning_network.fail_histogram, lightning_network.get_relays_balances()
 
 
 def run_simulation(r2c_balance,
@@ -146,7 +143,7 @@ def run_simulation(r2c_balance,
                    number_of_clients,
                    number_of_relays_per_client,
                    transaction_samples) \
-        -> Tuple[SimulationConfiguration, List[float], List[float], List[int], List[float]]:
+        -> Tuple[SimulationConfiguration, List[float], List[float], List[float], List[float]]:
     """
 
     :param r2c_balance:
@@ -193,7 +190,7 @@ def run_simulation(r2c_balance,
 
     avg_mean_balances: List[float] = [mean(elements) for elements in zip(*mean_balances_results)]
     avg_fail_rates: List[float] = [mean(elements) for elements in zip(*fail_rates_results)]
-    avg_fail_histogram: List[int] = [int(mean(elements)) for elements in zip(*fail_histogram_results)]
+    avg_fail_histogram: List[float] = [(mean(elements)) for elements in zip(*fail_histogram_results)]
     avg_relays_balances: List[float] = [mean(elements) for elements in zip(*relays_balances_results)]
 
     configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,
