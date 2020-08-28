@@ -10,7 +10,7 @@ from multiprocessing import Pool, cpu_count
 import tqdm
 import istarmap
 from statistics import mean
-from util import plot_graphs, plot_histogram, plot_density, store_results, SimulationConfiguration
+from util import plot_graphs, plot_histogram, plot_freq, store_results, SimulationConfiguration
 
 
 def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
@@ -82,26 +82,27 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
              if key.r2r_balance == r2r and key.r2c_balance == r2c}
 
         avg_mean_balances_df = store_results(current_configuration_to_avg_mean_balances, plot_path,
-                                             "Avg Relay Mean Balances in Satoshi r2r {} r2c {}".format(r2r, r2c))
+                                             "Avg Relay Mean Balances in Satoshi r2r {:.0E} r2c {:.0E}".format(r2r, r2c))
         fail_ratio_df = store_results(current_configuration_to_avg_fail_rates, plot_path,
-                                      "Fail Ratio r2r {} rtc {}".format(r2r, r2c))
+                                      "Fail Ratio r2r {:.0E} r2c {:.0E}".format(r2r, r2c))
         plot_graphs([avg_mean_balances_df, fail_ratio_df], plot_path,
                     ["Mean Balance", "Fail Rate"],
                     ["Mean Balance of Relays", "Fail Rate"],
-                    ["Mean Balance of Relays r2r {} r2c {}".format(r2r, r2c),
-                     "Fail Rate r2r {} r2c {}".format(r2r, r2c)], plot=plot)
+                    ["Mean Balance of Relays r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
+                     "Fail Rate r2r {:.0E} r2c {:.0E}".format(r2r, r2c)], plot=plot)
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
-                                              "Fail Histogram r2r {} rtc {}".format(r2r, r2c), csv=False)
+                                              "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c), csv=False)
         plot_histogram(avg_fail_histogram_df, plot_path, "Transaction Failure Histogram",
-                       "Fail Histogram r2r {} rtc {}".format(r2r, r2c),
-                       ["Failed at Hop (Index)", "Percentage From Total Failures"], plot=plot)
+                       "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
+                       ["Failed at Hop (Index)", "Number of Fails"], plot=plot)
 
         relays_balances_df = store_results(current_configuration_to_relays_balances, plot_path,
-                                           "Density of Relay Balances r2r {} rtc {}".format(r2r, r2c), csv=False)
-        plot_density(relays_balances_df, plot_path, "Density of Relay Balances",
-                     "Density of Relay Balances r2r {} rtc {}".format(r2r, r2c),
-                     ["Relay Balance", "Density"], plot=plot)
+                                           "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
+                                           csv=False)
+        plot_freq(relays_balances_df, plot_path, "Frequency of Relay Balances",
+                  "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
+                  ["Relay Balance", "Frequency"], plot=plot)
 
 
 def calc_simulation_results(

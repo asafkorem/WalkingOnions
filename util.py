@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import List, Dict
 import os
+import seaborn as sns
+import itertools
 
 
 SMALL_SIZE = 14
@@ -87,7 +89,7 @@ def plot_graphs(dfs,
         plot_names = titles
 
     for df, ylabel, title, name in zip(dfs, ylabels, titles, plot_names):
-        df.plot(title=title, figsize=(20, 10))\
+        df.plot(title=name, figsize=(20, 10))\
             .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                     title='Proportional Fees')
         plt.ylabel(ylabel)
@@ -109,7 +111,7 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False)
     :param plot:
     :return:
     """
-    df.plot.bar(title=title, figsize=(20, 10))\
+    df.plot.bar(title=name, figsize=(20, 10))\
         .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                 title='Proportional Fees')
     plt.xlabel(labels[0])
@@ -121,7 +123,7 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, plot=False)
     plt.close('all')
 
 
-def plot_density(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
+def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
     """
 
     :param df:
@@ -132,12 +134,29 @@ def plot_density(df: pd.DataFrame, plot_path, title, name, labels, plot=False):
     :param plot:
     :return:
     """
-    df.plot.density(title=title, figsize=(20, 10))\
-        .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
-                title='Proportional Fees')
+    # df.plot.hist(title=name, alpha=0.5, bins=100, figsize=(20, 10))\
+    #     .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
+    #             title='Proportional Fees')
+    #
+    # plt.xlabel(labels[0])
+    # plt.ylabel(labels[1])
+    # plt.savefig(fname=os.path.join(plot_path, name + '.png'))
+    # if plot:
+    #     plt.show()
+    # plt.close('all')
 
-    plt.xlabel(labels[0])
-    plt.ylabel(labels[1])
+    df_columns: List[pd.DataFrame] = [df[[column]] for column in df]
+    fig, axes = plt.subplots(2, 3, figsize=(20, 10), sharey=True, dpi=100)
+    palette = itertools.cycle(sns.color_palette())
+    fig.suptitle(title)
+    for df_column, axis in zip(df_columns, axes.flatten()):
+        axis.set_xlabel('relay balance')
+        axis.set_ylabel('freq')
+        plt.setp(axis.get_yticklabels(), visible=True)
+        sns.distplot(df_column, color=next(palette), ax=axis, kde=False,
+                     hist_kws={"rwidth": 0.75, 'edgecolor': 'black', 'alpha': 1.0})
+    fig.legend(title='proportional fee:', labels=[str(label_name) for label_name in df.columns],
+               loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
     if plot:
         plt.show()
