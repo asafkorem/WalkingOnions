@@ -91,7 +91,6 @@ def plot_graphs(dfs,
         plot_names = titles
 
     for df, ylabel, title, name, subtitle in zip(dfs, ylabels, titles, plot_names, subtitles):
-        df = df.iloc[::100, :]
         df.plot(title=title + "\n" + subtitle, figsize=(20, 10))\
             .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
                     title='Proportional Fees in %')
