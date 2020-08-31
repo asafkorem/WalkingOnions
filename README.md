@@ -27,3 +27,8 @@ R2R_CHANNEL_BALANCES, R2C_CHANNEL_BALANCES, TRANSACTION_PROPORTIONAL_FEES are li
 The number of resulting configurations the simulator will run simulations for is:
 len(R2R_CHANNEL_BALANCES) * len(R2C_CHANNEL_BALANCES) * len(TRANSACTION_PROPORTIONAL_FEES)
 
+##
+
+After the simulator finishes running, plots are presented and stored in "results" folder. Together with plots in a png
+format, the results are also stored in tex and pickle file formats. 
+
