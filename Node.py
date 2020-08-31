@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from Channel import Channel
 from typing import Dict
 
@@ -13,7 +13,7 @@ class Node:
         self.channels: Dict[Node, Channel] = dict()
         self.balance: float = 0
 
-    def create_channel(self, owner_balance: float, other_owner: Node, other_owner_balance: float):
+    def create_channel(self, owner_balance: float, other_owner: 'Node', other_owner_balance: float):
         """
 
         :param owner_balance:
@@ -30,7 +30,7 @@ class Node:
         self.channels[other_owner] = new_channel
         other_owner.channels[self] = new_channel
 
-    def has_channel(self, node: Node):
+    def has_channel(self, node: 'Node'):
         """
 
         :param node:
@@ -38,7 +38,7 @@ class Node:
         """
         return node in self.channels.keys()
 
-    def transact(self, target: Node, value: float):
+    def transact(self, target: 'Node', value: float):
         """
 
         :param target:

@@ -12,24 +12,27 @@ import istarmap
 from statistics import mean
 from util import plot_graphs, plot_histogram, plot_freq, store_results, SimulationConfiguration
 import math
+import Configuration
 
 
-def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5, plot=True):
+def run_simulations_and_plot_graphs():
     """
     Plot graphs, for each transaction fee (base fee = 100 and proportional_fee = 1%).
     For each graph, show the Relay expected balance and fail ratio.
     """
-    channel_cost = 44 * (10 ** 3)  # Based on avg. miners fee
-    hops_number = 3
-    number_of_relays = 50
-    number_of_clients = 5000
-    number_of_relays_per_client = 1
+    channel_cost: float = Configuration.CHANNEL_COST  # Based on avg. miners fee
+    hops_number: int = Configuration.HOPS_NUMBER
+    number_of_relays: int = Configuration.NUMBER_OF_RELAYS
+    number_of_clients: int = Configuration.NUMBER_OF_CLIENTS
+    number_of_relays_per_client: int = Configuration.NUMBER_OF_RELAYS_PER_CLIENT
 
     # 0.5M, 10M and 100M Satoshies.
-    r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
-    r2c_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    r2r_channel_balances: List[float] = Configuration.R2R_CHANNEL_BALANCES
+    r2c_channel_balances: List[float] = Configuration.R2C_CHANNEL_BALANCES
 
-    transaction_proportional_fees = [0.005, 0.01, 0.02, 0.03, 0.04, 0.05]
+    transaction_proportional_fees: List[float] = Configuration.TRANSACTION_PROPORTIONAL_FEES
+    transactions_num: int = Configuration.TRANSACTION_NUM
+    avg_across_count: int = Configuration.AVG_ACROSS_COUNT
 
     # We need to make sure that every configuration is simulated on the same list of transaction values in order to
     # compare between them correctly.
@@ -46,7 +49,12 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                number_of_clients,
                number_of_relays_per_client,
                transaction_samples) for r2r_balance, r2c_balance, transaction_proportional_fee in configurations]
-    with Pool(int(cpu_count())) as pool:
+
+    if not os.path.exists('results'):
+        os.mkdir('results')
+
+    print("Running configurations in parallel...")
+    with Pool(int(Configuration.CPU_NUM_RATIO * cpu_count())) as pool:
         results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
@@ -92,16 +100,14 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                     ["Mean Balance of Relays", "Fail Ratio"],
                     ["Mean Balance of Relays r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
                      "Fail Rate r2r {:.0E} r2c {:.0E}".format(r2r, r2c)],
-                    ["L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c)] * 2,
-                    plot=plot)
+                    ["L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c)] * 2)
 
         avg_fail_histogram_df = store_results(current_configuration_to_avg_fail_histogram, plot_path,
                                               "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c), csv=False)
         plot_histogram(avg_fail_histogram_df, plot_path, "Transaction Failure Histogram",
                        "Fail Histogram r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
                        ["Failed at Hop (Index)", "Number of Fails"],
-                       "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c),
-                       plot=plot)
+                       "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c))
 
         relays_balances_df = store_results(current_configuration_to_relays_balances, plot_path,
                                            "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
@@ -109,8 +115,7 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
         plot_freq(relays_balances_df, plot_path, "Frequency of Relay Balances",
                   "Frequency of Relay Balances r2r {:.0E} r2c {:.0E}".format(r2r, r2c),
                   ["Relay Balance", "Frequency"],
-                  "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c),
-                  plot=plot)
+                  "L(relay,relay)={:.0E}, L(relay,client)={:.0E}".format(r2r, r2c))
 
 
 def calc_simulation_results(

@@ -67,8 +67,7 @@ def plot_graphs(dfs,
                 ylabels: List[str] = None,
                 titles: List[str] = None,
                 plot_names: List[str] = None,
-                subtitles: List[str] = None,
-                plot=False):
+                subtitles: List[str] = None):
     """
 
     :param dfs:
@@ -98,13 +97,12 @@ def plot_graphs(dfs,
         plt.ylabel(ylabel)
         plt.xlabel('Transaction Number')
         plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-        tikz.save(os.path.join(plot_path, name + '.tex'))
-        if plot:
-            plt.show()
+        tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
+        plt.show()
     plt.close('all')
 
 
-def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=False):
+def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, subtitle):
     """
 
     :param df:
@@ -122,14 +120,13 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, subtitle, p
     plt.ylabel(labels[1])
     plt.title(title + "\n" + subtitle, fontsize=20)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-    tikz.save(os.path.join(plot_path, name + '.tex'))
-    if plot:
-        plt.show()
+    tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
+    plt.show()
 
     plt.close('all')
 
 
-def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=False):
+def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, subtitle):
     """
 
     :param df:
@@ -152,8 +149,7 @@ def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=F
     fig.legend(title='proportional fee:', labels=[str(label_name) for label_name in df.columns],
                loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-    tikz.save(os.path.join(plot_path, name + '.tex'))
-    if plot:
-        plt.show()
+    tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
+    plt.show()
     plt.close('all')
 
