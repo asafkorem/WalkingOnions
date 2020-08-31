@@ -18,7 +18,8 @@ class LightningNetworkConfiguration:
                  add_fees_to_value: bool,
                  number_of_relays: int,
                  number_of_clients: int,
-                 number_of_relays_per_client: int):
+                 number_of_relays_per_client: int,
+                 lazy_relays_num=0):
         """
 
         :param default_balance_client_relay_channel_client:
@@ -45,6 +46,7 @@ class LightningNetworkConfiguration:
         self.number_of_relays: int = number_of_relays
         self.number_of_clients: int = number_of_clients
         self.number_of_relays_per_client: int = number_of_relays_per_client
+        self.lazy_relays_num: int = lazy_relays_num
 
 
 class LightningNetwork:
@@ -55,7 +57,9 @@ class LightningNetwork:
         """
         self.configuration: LightningNetworkConfiguration = configuration
         self.relays: Set[Relay] = self.create_relays()
+        self.lazy_relays: Set[Relay] = set(random.sample(self.relays, self.configuration.lazy_relays_num))
         self.clients: Set[Client] = self.create_clients()
+        self.relays = self.relays.union(self.lazy_relays)
         self.sum_relays_balances: float = -self.calc_construction_price()
         self.fail_histogram: List[int] = [0] * (self.configuration.hops_number + 3)
 
@@ -82,7 +86,7 @@ class LightningNetwork:
         """
         clients: Set[Client] = set()
         for _ in range(self.configuration.number_of_clients):
-            bootstrap_relays = random.sample(self.relays, self.configuration.number_of_relays_per_client)
+            bootstrap_relays = random.sample(self.relays - self.lazy_relays, self.configuration.number_of_relays_per_client)
             new_client = Client(bootstrap_relays, self.configuration)
             clients.add(new_client)
         return clients
@@ -221,3 +225,16 @@ class LightningNetwork:
         :return:
         """
         return (len(self.relays) - 1) * len(self.relays) * self.configuration.channel_cost / 2
+
+    @staticmethod
+    def get_relay_balance(relay) -> float:
+        """
+
+        :param relay:
+        :return:
+        """
+        balance: float = relay.balance
+        for channel in relay.channels.values():
+            balance_in_channel: float = channel.balance1 if channel.node1 == relay else channel.balance2
+            balance += balance_in_channel
+        return balance

@@ -26,10 +26,15 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
     number_of_relays_per_client = 1
 
     # 0.5M, 10M and 100M Satoshies.
-    r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
-    r2c_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    # r2r_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    # r2c_channel_balances: List[float] = [10 ** 6, 5 * (10 ** 6), 10 ** 7, 10 ** 8]
+    #
+    # transaction_proportional_fees = [0.005, 0.01, 0.02, 0.03, 0.04, 0.05]
 
-    transaction_proportional_fees = [0.005, 0.01, 0.02, 0.03, 0.04, 0.05]
+    r2r_channel_balances: List[float] = [10 ** 7]
+    r2c_channel_balances: List[float] = [10 ** 7]
+
+    transaction_proportional_fees = [0.01, 0.010001, 0.010002, 0.010003, 0.010004, 0.010005, 0.010006, 0.010007, 0.010008, 0.010009]
 
     # We need to make sure that every configuration is simulated on the same list of transaction values in order to
     # compare between them correctly.
@@ -45,26 +50,32 @@ def run_simulations_and_plot_graphs(transactions_num=10 ** 4, avg_across_count=5
                number_of_relays,
                number_of_clients,
                number_of_relays_per_client,
-               transaction_samples) for r2r_balance, r2c_balance, transaction_proportional_fee in configurations]
-    with Pool(int(cpu_count())) as pool:
+               transaction_samples,
+               1) for r2r_balance, r2c_balance, transaction_proportional_fee in configurations]
+    with Pool(int(0.75 * cpu_count())) as pool:
         results = list(tqdm.tqdm(pool.istarmap(run_simulation, groups, chunksize=1), total=len(groups)))
 
     configuration_to_avg_mean_balances: Dict[SimulationConfiguration, List[float]]\
         = {configuration: avg_mean_balances
-           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances, lazy in results}
     configuration_to_avg_fail_rates: Dict[SimulationConfiguration, List[float]]\
         = {configuration: avg_fail_rates
-           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
+           for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances, lazy in results}
     configuration_to_avg_fail_histograms: Dict[SimulationConfiguration, List[int]] =\
         {configuration: avg_fail_histogram
-         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances, lazy in results}
     configuration_to_relays_balances: Dict[SimulationConfiguration, List[int]] =\
         {configuration: sorted(relays_balances)
-         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances in results}
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances, lazy in results}
+    configuration_lazy: Dict[SimulationConfiguration, float] = \
+        {configuration: lazy
+         for configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, relays_balances, lazy in results}
+    print(str([str(conf.r2r_balance) + " " + str(conf.r2r_balance) + " " + str(conf.proportional_fee) + " " + str(lazy) for conf, lazy in configuration_lazy.items()]))
+
 
     now = datetime.now()
     current_date_time = now.strftime("%Y-%m-%d %H-%M-%S")
-    subdirectory_name = "t_nu-" + str(transactions_num) + " avg_across-" + str(avg_across_count) + " time-" \
+    subdirectory_name = "t_nu " + str(transactions_num) + " avg_across " + str(avg_across_count) + " time " \
                         + str(current_date_time)
     plot_path = os.path.join('results', subdirectory_name)
 
@@ -139,7 +150,10 @@ def calc_simulation_results(
         fail_rates[i] = num_fails / i
         mean_balances[i] = lightning_network.get_relays_mean_balance()
 
-    return mean_balances, fail_rates, lightning_network.fail_histogram, lightning_network.get_relays_balances()
+    lazy_relay_balance: float = lightning_network.get_relay_balance(list(lightning_network.lazy_relays)[0]) / mean_balances[-1]
+
+    return mean_balances, fail_rates, lightning_network.fail_histogram, lightning_network.get_relays_balances(),\
+           lazy_relay_balance
 
 
 def run_simulation(r2c_balance,
@@ -150,7 +164,8 @@ def run_simulation(r2c_balance,
                    number_of_relays,
                    number_of_clients,
                    number_of_relays_per_client,
-                   transaction_samples) \
+                   transaction_samples,
+                   lazy=0) \
         -> Tuple[SimulationConfiguration, List[float], List[float], List[int], List[float]]:
     """
 
@@ -177,16 +192,18 @@ def run_simulation(r2c_balance,
         add_fees_to_value=False,
         number_of_relays=number_of_relays,
         number_of_clients=number_of_clients,
-        number_of_relays_per_client=number_of_relays_per_client
+        number_of_relays_per_client=number_of_relays_per_client,
+        lazy_relays_num=lazy
     )
 
     mean_balances_results: List[List[float]] = list()
     fail_rates_results: List[List[float]] = list()
     fail_histogram_results: List[List[int]] = list()
     relays_balances_results: List[List[float]] = list()
+    lazy_relay_balances: List[float] = list()
 
     for i, transactions_values in enumerate(transaction_samples, 1):
-        mean_balances, fail_rates, fail_histogram, relays_balances = calc_simulation_results(
+        mean_balances, fail_rates, fail_histogram, relays_balances, lazy_relay_balance = calc_simulation_results(
             network_configuration=network_configuration,
             transaction_values=transactions_values
         )
@@ -195,13 +212,15 @@ def run_simulation(r2c_balance,
         fail_rates_results.append(fail_rates)
         fail_histogram_results.append(fail_histogram)
         relays_balances_results.append(relays_balances)
+        lazy_relay_balances.append(lazy_relay_balance)
 
     avg_mean_balances: List[float] = [mean(elements) for elements in zip(*mean_balances_results)]
     avg_fail_rates: List[float] = [mean(elements) for elements in zip(*fail_rates_results)]
     avg_fail_histogram: List[int] = [math.floor(mean(elements)) for elements in zip(*fail_histogram_results)]
     avg_relays_balances: List[float] = [mean(elements) for elements in zip(*relays_balances_results)]
+    avg_lazy_relay_balance: float = mean(lazy_relay_balances)
 
     configuration: SimulationConfiguration = SimulationConfiguration(r2r_balance, r2c_balance, 0,
                                                                      transaction_proportional_fee)
 
-    return configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, avg_relays_balances
+    return configuration, avg_mean_balances, avg_fail_rates, avg_fail_histogram, avg_relays_balances, avg_lazy_relay_balance

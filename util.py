@@ -93,12 +93,12 @@ def plot_graphs(dfs,
     for df, ylabel, title, name, subtitle in zip(dfs, ylabels, titles, plot_names, subtitles):
         df.plot(title=title + "\n" + subtitle, figsize=(20, 10))\
             .legend(loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1,
-                    title='Proportional Fees in %')
+                    title='Proportional Fees in percent')
         plt.title(title + "\n" + subtitle, fontsize=20)
         plt.ylabel(ylabel)
         plt.xlabel('Transaction Number')
         plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-        tikz.save(os.path.join(plot_path, name + '.tex'))
+        tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
         if plot:
             plt.show()
     plt.close('all')
@@ -122,7 +122,7 @@ def plot_histogram(df: pd.DataFrame, plot_path, title, name, labels, subtitle, p
     plt.ylabel(labels[1])
     plt.title(title + "\n" + subtitle, fontsize=20)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-    tikz.save(os.path.join(plot_path, name + '.tex'))
+    tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
     if plot:
         plt.show()
 
@@ -152,7 +152,7 @@ def plot_freq(df: pd.DataFrame, plot_path, title, name, labels, subtitle, plot=F
     fig.legend(title='proportional fee:', labels=[str(label_name) for label_name in df.columns],
                loc="upper left", frameon=True, framealpha=0.7, ncol=1, shadow=False, borderpad=1)
     plt.savefig(fname=os.path.join(plot_path, name + '.png'))
-    tikz.save(os.path.join(plot_path, name + '.tex'))
+    tikz.save(os.path.join(plot_path, name + '.tex'), encoding='utf-8')
     if plot:
         plt.show()
     plt.close('all')
